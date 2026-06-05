@@ -91,6 +91,7 @@ Token cost: **zero**. Hooks run outside the LLM turn.
 
 | Command | What it does |
 |---|---|
+| `/podium` | Show the subcommand reference (alias for `/podium help`) |
 | `/podium setup` | Register Claude Code hooks (once per project or globally) |
 | `/podium start` | Start the dashboard server → http://localhost:4820 |
 | `/podium stop` | Stop the server |
@@ -184,6 +185,6 @@ node install.mjs [--check] [--uninstall] [--global]
 
 <div align="center">
 
-*Built at wp-media — companion to [Maestro](https://github.com/wp-media/maestro).*
+*Stand here. See everything. Pair with [Maestro](https://github.com/wp-media/maestro) — Built at WP-Media*
 
 </div>
