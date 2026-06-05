@@ -1,67 +1,189 @@
-# Podium
+<div align="center">
 
-Real-time agent observer for Maestro pipelines. Zero token cost — powered by
-Claude Code hooks, not orchestrator instructions.
-
-## Quick start
-
-```bash
-# 1. Register hooks in the project (once per project, restart Claude Code after)
-node podium/install.mjs
-
-# 2. Start the dashboard server
-node podium/server.mjs
-
-# 3. Open http://localhost:7337
+```
+██████╗  ██████╗ ██████╗ ██╗██╗   ██╗███╗   ███╗
+██╔══██╗██╔═══██╗██╔══██╗██║██║   ██║████╗ ████║
+██████╔╝██║   ██║██║  ██║██║██║   ██║██╔████╔██║
+██╔═══╝ ██║   ██║██║  ██║██║██║   ██║██║╚██╔╝██║
+██║     ╚██████╔╝██████╔╝██║╚██████╔╝██║ ╚═╝ ██║
+╚═╝      ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚═╝     ╚═╝
 ```
 
-Or from within a Claude Code session: `/podium`
+**Stand here. See everything.**
 
-## How it works
+*Podium puts you on the conductor's platform — every Claude Code agent, tool call,*
+*and session streaming live to your browser. Zero token cost.*
+
+---
+
+[![Claude Code Plugin](https://img.shields.io/badge/Claude%20Code-plugin-orange?style=flat-square)](https://github.com/wp-media/claude-marketplace)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+[![wp-media](https://img.shields.io/badge/by-wp--media-black?style=flat-square)](https://github.com/wp-media)
+
+</div>
+
+---
+
+## What Is Podium?
+
+Podium is a **Claude Code plugin** that captures every hook event the harness fires — session starts, tool calls, agent spawns — and streams them to a real-time browser dashboard.
+
+No extra LLM calls. No orchestrator changes. No polling your terminal. Just open the dashboard and watch.
+
+---
+
+## Install
+
+```
+/plugin marketplace add wp-media/claude-marketplace
+/plugin install podium@wp-media
+```
+
+Then in any Claude Code session:
+
+```
+/podium setup    ← register hooks once (restart Claude Code after)
+/podium start    ← open http://localhost:4820
+```
+
+---
+
+## What You See
+
+| View | What it shows |
+|---|---|
+| **Dashboard** | Live session feed — every active run across all your projects |
+| **Sessions** | Full history with status, duration, agent count |
+| **Activity Feed** | Every tool call streaming in real time |
+| **Analytics** | Token usage by model, tool frequency, concurrency, cost |
+| **Kanban Board** | Sessions by status — running, success, failed |
+| **Workflows** | Multi-agent pipelines with hierarchy and timing |
+
+---
+
+## How It Works
 
 ```
 Claude Code harness
       │
-      │ fires hook on every Agent / Workflow tool use (PreToolUse, PostToolUse,
-      │ SubagentStart, SubagentStop, SessionStart, SessionEnd)
+      │  fires on every hook event
+      │  (SessionStart, PreToolUse, PostToolUse, SubagentStart …)
       ▼
-podium/hook.mjs        ← reads stdin, appends one JSON line, exits < 1 s
+~/.claude/podium/hook.mjs     ← reads stdin, appends one JSON line, exits < 1 s
       │
       ▼
-{TEMP_ROOT}/podium/{session_id}/events.jsonl
+.podium/{session_id}/events.jsonl
       │
-      │ tailed every 500 ms
+      │  tailed every 500 ms
       ▼
-podium/server.mjs      ← HTTP + SSE server on port 7337
+server.mjs                    ← zero-dep HTTP + SSE server  :4820
       │
-      │ Server-Sent Events
+      │  Server-Sent Events
       ▼
-podium/index.html      ← single-file dashboard, no CDN
+dashboard/                    ← pre-built React SPA, served from dist/
 ```
 
-## Files
+Token cost: **zero**. Hooks run outside the LLM turn.
 
-| File | Purpose |
+---
+
+## Commands
+
+| Command | What it does |
 |---|---|
-| `hook.mjs` | Claude Code hook — reads tool events, writes JSONL |
-| `server.mjs` | Zero-dep HTTP + SSE server |
-| `index.html` | Self-contained dashboard (no external CDN) |
-| `install.mjs` | Registers / removes hooks in `.claude/settings.json` |
+| `/podium setup` | Register Claude Code hooks (once per project or globally) |
+| `/podium start` | Start the dashboard server → http://localhost:4820 |
+| `/podium stop` | Stop the server |
+| `/podium restart` | Stop then start |
+| `/podium status` | Health check + hook status + stats |
+| `/podium logs` | Tail the server log |
+| `/podium uninstall` | Remove hooks from settings.json |
 
-## CLI options
+---
+
+## Repository Layout
+
+```
+podium/
+│
+├── .claude-plugin/
+│   └── plugin.json          ← Claude Code plugin manifest
+│
+├── commands/
+│   ├── podium.md            ← /podium skill
+│   └── podium-health.md     ← /podium-health skill
+│
+├── dashboard/
+│   ├── client/              ← React + TypeScript + Vite frontend
+│   │   ├── src/             ← components, pages, hooks
+│   │   └── dist/            ← pre-built SPA (committed — no build needed on install)
+│   └── server/              ← Express API (dev mode only)
+│
+├── hook.mjs                 ← Claude Code hook — reads events, writes JSONL
+├── server.mjs               ← Zero-dep HTTP + SSE server (production)
+├── install.mjs              ← Registers / removes hooks in settings.json
+└── release.sh               ← Bump version, build, tag, push
+```
+
+---
+
+## Releasing a New Version
 
 ```bash
-node podium/server.mjs [--port 7337] [--temp-root .maestro]
-node podium/install.mjs [--check] [--uninstall] [--global]
+./release.sh 1.2.0
 ```
 
-## Hook events captured
+The script will:
+1. Bump the version in `.claude-plugin/plugin.json` and `dashboard/client/package.json`
+2. Build the dashboard client (bakes the version into the bundle)
+3. Commit the version bump + built `dist/`
+4. Tag `v1.2.0` and push branch + tag
 
-| Hook | Event written |
+Then create the GitHub Release from the tag — plugin users pick it up automatically on their next Claude session.
+
+---
+
+## Local Development
+
+```bash
+# Install dashboard dependencies
+cd dashboard && npm install
+
+# Run dev server (hot reload, proxies API to server.mjs)
+npm run dev
+
+# Build for release
+cd client && npm run build
+```
+
+The dev server proxies `/api/*` to `server.mjs` on port 4820. Set `DASHBOARD_PORT` if you need a different port:
+
+```bash
+DASHBOARD_PORT=4821 npm run dev
+```
+
+---
+
+## CLI Reference
+
+```bash
+node server.mjs  [--port 4820] [--temp-root .podium]
+node install.mjs [--check] [--uninstall] [--global]
+```
+
+**`install.mjs` flags**
+
+| Flag | Effect |
 |---|---|
-| `SessionStart` | `session_start` |
-| `PreToolUse` (Agent / Workflow) | `agent_start` |
-| `PostToolUse` (Agent / Workflow) | `agent_end` |
-| `SubagentStart` | `subagent_meta` (enriches agent name) |
-| `SubagentStop` | `subagent_stop` |
-| `SessionEnd` | `session_end` |
+| *(none)* | Install stable hooks in project `.claude/settings.json` |
+| `--global` | Install in `~/.claude/settings.json` (all projects) |
+| `--check` | Exit 0 if hooks are active, 1 if not |
+| `--uninstall` | Remove Podium hooks from settings.json |
+
+---
+
+<div align="center">
+
+*Built at wp-media — companion to [Maestro](https://github.com/wp-media/maestro).*
+
+</div>
