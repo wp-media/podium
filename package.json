@@ -1,7 +1,7 @@
 {
   "name": "@wp-media/podium",
-  "version": "1.0.0",
-  "description": "Podium — Maestro agent observer dashboard for Claude Code",
+  "version": "1.1.0",
+  "description": "Podium — real-time agent observer dashboard for Claude Code",
   "type": "module",
   "main": "hook.mjs",
   "license": "MIT",
@@ -15,7 +15,7 @@
     "plugin",
     "dashboard",
     "agent-observer",
-    "maestro"
+    "observability"
   ],
   "scripts": {
     "install": "node install.mjs",
