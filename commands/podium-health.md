@@ -1,9 +1,6 @@
 ---
 name: podium-health
-description: >
-  Report whether the Podium dashboard server is running and reachable.
-  Returns a single-line machine-readable status for callers.
-  Use when asked to check if Podium is running or available.
+description: "[internal] Machine-readable Podium health check — prints `podium: running` or `podium: not running`. Called by Maestro; not a user-facing command."
 ---
 
 ```bash

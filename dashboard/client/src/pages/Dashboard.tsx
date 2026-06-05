@@ -49,6 +49,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { GripVertical } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { loadAdvancedMetrics } from "../lib/displaySettings";
 import { StatCard } from "../components/StatCard";
 import { AgentCard } from "../components/AgentCard";
 import { AgentStatusBadge } from "../components/StatusBadge";
@@ -224,7 +225,18 @@ function SystemHealthTab() {
     };
   }, [info, workflow]);
 
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics());
   const [order, setOrder] = useState<string[]>(loadHealthCardOrder);
+
+  // Listen for settings changes
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      setAdvancedMetrics(loadAdvancedMetrics());
+    };
+    window.addEventListener("podium-settings-changed", handleSettingsChange);
+    return () => window.removeEventListener("podium-settings-changed", handleSettingsChange);
+  }, []);
+
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
@@ -1012,13 +1024,17 @@ function SystemHealthTab() {
       >
         <SortableContext items={order} strategy={rectSortingStrategy}>
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
-            {order.map((id) =>
-              cardMap[id] ? (
+            {order.map((id) => {
+              // Hide purely superficial cards unless advanced metrics is enabled
+              if (!advancedMetrics && (id === "platform" || id === "runtime")) {
+                return null;
+              }
+              return cardMap[id] ? (
                 <SortableCard key={id} id={id}>
                   {cardMap[id]}
                 </SortableCard>
-              ) : null
-            )}
+              ) : null;
+            })}
           </div>
         </SortableContext>
       </DndContext>

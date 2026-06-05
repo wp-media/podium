@@ -1,12 +1,6 @@
 ---
 name: podium
-description: >
-  Manage the Podium agent observer — a real-time dashboard that visualises
-  every agent the orchestrator spawns at zero token cost (Claude Code hooks).
-  Use when asked to "open podium", "start podium", "watch agents", "monitor
-  pipeline", "show agent tree", "stop podium", or "podium status".
-  Subcommands: setup · start · stop · restart · status · logs · uninstall.
-  Bare `/podium` is an alias for `/podium start`.
+description: "Manage the Podium agent observer — real-time dashboard for Claude Code agents. Subcommands: setup · start · stop · restart · status · logs · uninstall. Bare `/podium` starts the server."
 ---
 
 ## How Podium works
@@ -218,9 +212,30 @@ Does **not** stop a running server — run `/podium stop` first if needed.
 
 ---
 
-## `/podium` (bare)
+## `/podium` (bare) · `/podium help`
 
-Alias for `/podium start`.
+When invoked with no arguments or with `help`, print this overview, then start
+the server (same as `/podium start`).
+
+```
+Podium — real-time agent observer for Claude Code
+Zero token cost · hooks-driven · pre-built SPA on port 4820
+
+Commands
+────────────────────────────────────────────────────
+  /podium setup      Register Claude Code hooks (run once per project)
+  /podium start      Start the dashboard server
+  /podium stop       Stop the server
+  /podium restart    Stop, then start
+  /podium status     Show health, hook state, and live stats
+  /podium logs       Tail the server log (last 50 lines)
+  /podium uninstall  Remove hooks from .claude/settings.json
+
+Tip: bare /podium is an alias for /podium start.
+Dashboard → http://localhost:4820
+```
+
+After printing the overview, proceed with `/podium start` steps.
 
 ---
 
