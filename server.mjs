@@ -36,12 +36,6 @@ function resolveTempRoot(cliTempRoot) {
     const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.claude', 'podium.json'), 'utf8'));
     if (typeof cfg?.tempRoot === 'string' && cfg.tempRoot.length > 0) return cfg.tempRoot;
   } catch { /* no podium.json */ }
-  try {
-    // Backward compat: honour Maestro's temp_root if present.
-    const cfg = JSON.parse(fs.readFileSync(path.join(process.cwd(), '.claude', 'maestro.json'), 'utf8'));
-    if (typeof cfg?.ai?.temp_root === 'string' && cfg.ai.temp_root.length > 0)
-      return path.join(cfg.ai.temp_root, 'podium');
-  } catch { /* no maestro.json */ }
   return '.podium';
 }
 
