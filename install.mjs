@@ -27,6 +27,12 @@ const HOOK_EVENTS = [
 
 const PODIUM_MARKER = 'podium/hook.mjs'
 
+// Legacy markers from when Podium was embedded inside Maestro — cleaned up on install.
+const LEGACY_MARKERS = [
+  'hook-handler.js',
+  'podium/dashboard/scripts',
+]
+
 // ── Parse args ────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2)
 const MODE = args.includes('--uninstall') ? 'uninstall'
@@ -66,13 +72,17 @@ if (MODE === 'check') {
 
 if (MODE === 'uninstall') {
   if (!settings.hooks) { console.log('Nothing to uninstall.'); process.exit(0) }
+  const allMarkers = [PODIUM_MARKER, ...LEGACY_MARKERS]
   let removed = 0
   for (const evt of HOOK_EVENTS) {
     if (!Array.isArray(settings.hooks[evt])) continue
     const before = settings.hooks[evt].length
     settings.hooks[evt] = settings.hooks[evt].filter((e) =>
       !(Array.isArray(e.hooks) &&
-        e.hooks.some((h) => typeof h.command === 'string' && h.command.includes(PODIUM_MARKER)))
+        e.hooks.some((h) =>
+          typeof h.command === 'string' &&
+          allMarkers.some((m) => h.command.includes(m))
+        ))
     )
     removed += before - settings.hooks[evt].length
   }
@@ -83,6 +93,24 @@ if (MODE === 'uninstall') {
 
 // ── Install ───────────────────────────────────────────────────────────────────
 if (!settings.hooks) settings.hooks = {}
+
+// Remove any legacy hooks from the old Maestro-embedded Podium path.
+let cleaned = 0
+for (const evt of HOOK_EVENTS) {
+  if (!Array.isArray(settings.hooks[evt])) continue
+  const before = settings.hooks[evt].length
+  settings.hooks[evt] = settings.hooks[evt].filter((e) =>
+    !(Array.isArray(e.hooks) &&
+      e.hooks.some((h) =>
+        typeof h.command === 'string' &&
+        LEGACY_MARKERS.some((m) => h.command.includes(m))
+      ))
+  )
+  cleaned += before - settings.hooks[evt].length
+}
+if (cleaned > 0) {
+  console.log(`  Removed ${cleaned} legacy Podium hook(s) from old Maestro path.`)
+}
 
 let added = 0
 for (const evt of HOOK_EVENTS) {
