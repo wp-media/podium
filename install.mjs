@@ -3,16 +3,25 @@
 // Registers Podium hooks in the project's .claude/settings.json.
 //
 // Usage:
-//   node podium/install.mjs              -- registers hooks, prints status
-//   node podium/install.mjs --uninstall  -- removes Podium hooks
-//   node podium/install.mjs --check      -- exits 0 if installed, 1 if not
+//   node install.mjs              -- registers hooks, prints status
+//   node install.mjs --uninstall  -- removes Podium hooks
+//   node install.mjs --check      -- exits 0 if installed, 1 if not
+//   node install.mjs --global     -- target ~/.claude/settings.json
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
-const HOOK_PATH = resolve(join(__dirname, 'hook.mjs'))
+
+// Copy hook.mjs to a stable location that won't change between plugin updates.
+// Registered path in settings.json must not depend on the plugin cache hash.
+const STABLE_DIR = join(process.env.HOME ?? '~', '.claude', 'podium')
+const STABLE_HOOK = join(STABLE_DIR, 'hook.mjs')
+mkdirSync(STABLE_DIR, { recursive: true })
+copyFileSync(resolve(join(__dirname, 'hook.mjs')), STABLE_HOOK)
+
+const HOOK_PATH = STABLE_HOOK
 
 const HOOK_EVENTS = [
   'SessionStart',
@@ -25,7 +34,7 @@ const HOOK_EVENTS = [
   'SessionEnd',
 ]
 
-const PODIUM_MARKER = 'podium/hook.mjs'
+const PODIUM_MARKER = '.claude/podium/hook.mjs'
 
 // Legacy markers from when Podium was embedded inside Maestro — cleaned up on install.
 const LEGACY_MARKERS = [

@@ -128,18 +128,29 @@ function run(input) {
 
   // ── Resolve TEMP_ROOT ───────────────────────────────────────────────────────
   const projectRoot = cwd || process.cwd()
-  let tempRoot = join(projectRoot, '.maestro')
+  let tempRoot = join(projectRoot, '.podium')
   try {
+    // Honour explicit podium.tempRoot in .claude/podium.json if present.
     const cfg = JSON.parse(
-      readFileSync(join(projectRoot, '.claude', 'maestro.json'), 'utf8'),
+      readFileSync(join(projectRoot, '.claude', 'podium.json'), 'utf8'),
     )
-    if (typeof cfg?.ai?.temp_root === 'string' && cfg.ai.temp_root.length > 0) {
-      tempRoot = join(projectRoot, cfg.ai.temp_root)
+    if (typeof cfg?.tempRoot === 'string' && cfg.tempRoot.length > 0) {
+      tempRoot = join(projectRoot, cfg.tempRoot)
     }
-  } catch { /* not a Maestro project — use default */ }
+  } catch {
+    try {
+      // Backward compat: read temp_root from Maestro config if present.
+      const cfg = JSON.parse(
+        readFileSync(join(projectRoot, '.claude', 'maestro.json'), 'utf8'),
+      )
+      if (typeof cfg?.ai?.temp_root === 'string' && cfg.ai.temp_root.length > 0) {
+        tempRoot = join(projectRoot, cfg.ai.temp_root, 'podium')
+      }
+    } catch { /* no config — use .podium/ default */ }
+  }
 
   // ── Ensure session directory ────────────────────────────────────────────────
-  const sessionDir = join(tempRoot, 'podium', session_id)
+  const sessionDir = join(tempRoot, session_id)
   try { mkdirSync(sessionDir, { recursive: true }) } catch { return }
   const eventsFile = join(sessionDir, 'events.jsonl')
 
