@@ -1,0 +1,25 @@
+{
+  "name": "@wp-media/podium",
+  "version": "1.0.0",
+  "description": "Podium — Maestro agent observer dashboard for Claude Code",
+  "type": "module",
+  "main": "hook.mjs",
+  "license": "MIT",
+  "author": "WP Media",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wp-media/podium"
+  },
+  "keywords": [
+    "claude-code",
+    "plugin",
+    "dashboard",
+    "agent-observer",
+    "maestro"
+  ],
+  "scripts": {
+    "install": "node install.mjs",
+    "uninstall": "node install.mjs --uninstall",
+    "check": "node install.mjs --check"
+  }
+}
