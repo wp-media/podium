@@ -61,8 +61,8 @@ npm --prefix "$CLIENT_DIR" run build
 echo "  Staging release files..."
 git -C "$SCRIPT_DIR" add \
   ".claude-plugin/plugin.json" \
-  "dashboard/client/package.json" \
-  "dashboard/client/dist"
+  "dashboard/client/package.json"
+git -C "$SCRIPT_DIR" add -f "dashboard/client/dist"
 
 git -C "$SCRIPT_DIR" commit -m "chore: release v$VERSION"
 
