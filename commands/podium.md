@@ -34,8 +34,16 @@ Derived paths (hold these for every subcommand):
 | `HOOK_SCRIPT` | `{PLUGIN_ROOT}/hook.mjs` |
 | `SERVER_SCRIPT` | `{PLUGIN_ROOT}/server.mjs` |
 | `DASHBOARD_ROOT` | `{PLUGIN_ROOT}/dashboard` |
-| `PORT` | `4820` |
+| `PORT` | detected below |
 | `LOG_FILE` | `{PLUGIN_ROOT}/.podium/server.log` (fallback: `/tmp/podium/server.log`) |
+
+Detect the port the server will actually bind to (avoids stale-cache mismatches):
+
+```bash
+PORT=$(node -e "const t=require('fs').readFileSync('{SERVER_SCRIPT}','utf8');const m=t.match(/port:\s*(\d+)/);process.stdout.write(m?.[1]??'4820')" 2>/dev/null || echo "4820")
+```
+
+If `PORT` is not `4820`, warn: "Cached server.mjs uses port `{PORT}` (expected 4820). The plugin cache may be stale — consider reinstalling."
 
 ---
 
@@ -82,7 +90,7 @@ first, then restart Claude Code." — but continue anyway.
 **b. Check if already running**
 
 ```bash
-curl -s --max-time 2 http://localhost:4820/health
+curl -s --max-time 2 http://localhost:{PORT}/health
 ```
 
 HTTP 200 → already up, skip to step e.
@@ -105,27 +113,33 @@ step needed.
 **d. Start server in background**
 
 ```bash
-node {SERVER_SCRIPT} >> {LOG_FILE} 2>&1 &
+mkdir -p "$(dirname {LOG_FILE})" && node {SERVER_SCRIPT} >> {LOG_FILE} 2>&1 &
 ```
 
 Wait 2 s, then verify:
 
 ```bash
-curl -s --max-time 2 http://localhost:4820/health
+curl -s --max-time 2 http://localhost:{PORT}/health
 ```
 
-If still unreachable, check the log: `tail -20 {LOG_FILE}`.
+If still unreachable:
+
+```bash
+tail -20 {LOG_FILE}
+```
+
+Report: "Podium failed to start. See log above." and stop. **Do not check other ports** — an unrelated process on a different port is not Podium.
 
 **e. Show current stats**
 
 ```bash
-curl -s http://localhost:4820/api/stats
+curl -s http://localhost:{PORT}/api/stats
 ```
 
 **f. Print URL**
 
 ```
-Podium running -> http://localhost:4820
+Podium running -> http://localhost:{PORT}
 ```
 
 ---
@@ -133,7 +147,7 @@ Podium running -> http://localhost:4820
 ## `/podium stop`
 
 ```bash
-lsof -ti:4820 2>/dev/null || fuser 4820/tcp 2>/dev/null
+lsof -ti:{PORT} 2>/dev/null || fuser {PORT}/tcp 2>/dev/null
 ```
 
 No output → "Podium is not running."
@@ -141,7 +155,7 @@ No output → "Podium is not running."
 Otherwise:
 
 ```bash
-kill $(lsof -ti:4820 2>/dev/null) 2>/dev/null || fuser -k 4820/tcp 2>/dev/null || true
+kill $(lsof -ti:{PORT} 2>/dev/null) 2>/dev/null || fuser -k {PORT}/tcp 2>/dev/null || true
 ```
 
 Confirm: "Podium stopped."
@@ -157,7 +171,7 @@ Run `/podium stop`, wait 1 s, then run `/podium start`.
 ## `/podium status`
 
 ```bash
-curl -s --max-time 2 http://localhost:4820/health
+curl -s --max-time 2 http://localhost:{PORT}/health
 ```
 
 **If not running:** "Podium is not running. Run `/podium start` to launch it."
@@ -165,14 +179,14 @@ curl -s --max-time 2 http://localhost:4820/health
 **If running,** also fetch:
 
 ```bash
-curl -s http://localhost:4820/api/stats
+curl -s http://localhost:{PORT}/api/stats
 ```
 
 Display:
 
 ```
 Podium status
-  Server  http://localhost:4820  uptime Xm Xs
+  Server  http://localhost:{PORT}  uptime Xm Xs
   Hooks   installed / not installed (.claude/settings.json)
 
   Stats
@@ -227,11 +241,11 @@ Alias for `/podium start`.
 ## Notes
 
 - Hooks fire **per-project**: the hook script captures every Claude Code event
-  and POSTs it to the dashboard server on port 4820.
+  and POSTs it to the dashboard server (port 4820 by default).
 - Token cost: **zero**. Hooks execute outside the LLM turn.
 - Podium is read-only — it never modifies code or project files.
 - The dashboard is served as a pre-built SPA (`dist/` is committed).
 - Requires Node 18+. Run `npm install` inside `{DASHBOARD_ROOT}` before first use.
 - **Linux:** `better-sqlite3` requires native compilation. If `npm install` fails:
   `sudo apt-get install -y python3 make g++` then retry.
-- **Linux:** `lsof` may not be installed. `/podium stop` falls back to `fuser -k 4820/tcp`.
+- **Linux:** `lsof` may not be installed. `/podium stop` falls back to `fuser -k {PORT}/tcp`.

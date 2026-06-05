@@ -36,6 +36,9 @@ const HOOK_EVENTS = [
 
 const PODIUM_MARKER = '.claude/podium/hook.mjs'
 
+// Also recognize hooks registered by the plugin manager at cache paths (read-only detection).
+const PLUGIN_CACHE_MARKER = 'plugins/cache/wp-media/podium'
+
 // Legacy markers from when Podium was embedded inside Maestro — cleaned up on install.
 const LEGACY_MARKERS = [
   'hook-handler.js',
@@ -61,22 +64,39 @@ if (existsSync(SETTINGS_PATH)) {
 }
 
 // ── Check if already installed ────────────────────────────────────────────────
-function isInstalled(settings) {
+function hasHookMatching(settings, ...markers) {
   if (!settings.hooks) return false
   return HOOK_EVENTS.some((evt) => {
     const entries = settings.hooks[evt]
     if (!Array.isArray(entries)) return false
     return entries.some((e) =>
       Array.isArray(e.hooks) &&
-      e.hooks.some((h) => typeof h.command === 'string' && h.command.includes(PODIUM_MARKER))
+      e.hooks.some((h) => typeof h.command === 'string' && markers.some((m) => h.command.includes(m)))
     )
   })
 }
 
+// Strict: stable-path hooks (survives plugin updates). Used for deduplication on install.
+function isInstalled(settings) {
+  return hasHookMatching(settings, PODIUM_MARKER)
+}
+
+// Lenient: any active Podium hooks (stable OR plugin-manager cache paths).
+function hasActivePodiumHooks(settings) {
+  return hasHookMatching(settings, PODIUM_MARKER, PLUGIN_CACHE_MARKER)
+}
+
 if (MODE === 'check') {
-  const installed = isInstalled(settings)
-  console.log(installed ? 'Podium hooks: installed' : 'Podium hooks: not installed')
-  process.exit(installed ? 0 : 1)
+  if (isInstalled(settings)) {
+    console.log('Podium hooks: installed')
+    process.exit(0)
+  }
+  if (hasActivePodiumHooks(settings)) {
+    console.log('Podium hooks: installed (via plugin manager — run /podium setup for stable hooks)')
+    process.exit(0)
+  }
+  console.log('Podium hooks: not installed')
+  process.exit(1)
 }
 
 if (MODE === 'uninstall') {
