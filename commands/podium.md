@@ -1,6 +1,6 @@
 ---
 name: podium
-description: "Manage the Podium agent observer — real-time dashboard for Claude Code agents. Subcommands: setup · start · stop · restart · status · logs · uninstall. Bare `/podium` starts the server."
+description: "Manage the Podium agent observer — real-time dashboard for Claude Code agents. Subcommands: setup · start · stop · restart · status · logs · uninstall. Bare `/podium` shows the subcommand reference (alias for /podium help)."
 ---
 
 ## How Podium works
@@ -214,8 +214,8 @@ Does **not** stop a running server — run `/podium stop` first if needed.
 
 ## `/podium` (bare) · `/podium help`
 
-When invoked with no arguments or with `help`, print this overview, then start
-the server (same as `/podium start`).
+When invoked with no arguments or with `help`, print this overview and stop.
+Do **not** start the server.
 
 ```
 Podium — real-time agent observer for Claude Code
@@ -231,11 +231,8 @@ Commands
   /podium logs       Tail the server log (last 50 lines)
   /podium uninstall  Remove hooks from .claude/settings.json
 
-Tip: bare /podium is an alias for /podium start.
 Dashboard → http://localhost:4820
 ```
-
-After printing the overview, proceed with `/podium start` steps.
 
 ---
 
