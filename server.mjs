@@ -12,7 +12,7 @@ const HEARTBEAT_INTERVAL_MS = 15000;
 const RUN_END_GRACE_MS = 5000;
 
 function parseArgs(argv) {
-  const args = { port: 7337, tempRoot: null };
+  const args = { port: 4820, tempRoot: null };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === '--port') {
@@ -380,7 +380,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(res, 200, {
         status: 'ok',
         port: PORT,
-        temp_root: TEMP_ROOT,
+        temp_root: PODIUM_DIR,
         podium_dir: PODIUM_DIR,
         uptime_ms: Date.now() - START_TIME,
       });
@@ -428,7 +428,7 @@ server.on('error', (err) => {
 
 server.listen(PORT, () => {
   console.log(`Podium running at http://localhost:${PORT}`);
-  console.log(`Watching ${TEMP_ROOT} for pipeline runs`);
+  console.log(`Watching ${PODIUM_DIR} for pipeline runs`);
 });
 
 function shutdown() {

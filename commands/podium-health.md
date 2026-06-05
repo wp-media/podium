@@ -2,7 +2,7 @@
 name: podium-health
 description: >
   Report whether the Podium dashboard server is running and reachable.
-  Returns a single-line machine-readable status for callers (e.g. Maestro).
+  Returns a single-line machine-readable status for callers.
   Use when asked to check if Podium is running or available.
 ---
 

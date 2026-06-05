@@ -20,7 +20,7 @@ This skill lives at `{podium_plugin_root}/commands/podium.md`. Resolve the
 plugin root by finding `hook.mjs` in the Claude Code plugins cache:
 
 ```bash
-find ~/.claude/plugins/cache/podium ~/.claude/plugins/podium -name "hook.mjs" 2>/dev/null | sort -V | tail -1
+find ~/.claude/plugins/cache/wp-media/podium -name "hook.mjs" 2>/dev/null | sort -V | tail -1
 ```
 
 Strip `/hook.mjs` from the result — that prefix is `{podium_plugin_root}`.
@@ -35,9 +35,7 @@ Derived paths (hold these for every subcommand):
 | `SERVER_SCRIPT` | `{PLUGIN_ROOT}/server.mjs` |
 | `DASHBOARD_ROOT` | `{PLUGIN_ROOT}/dashboard` |
 | `PORT` | `4820` |
-| `LOG_FILE` | `{TEMP_ROOT}/podium/server.log` (fallback: `/tmp/podium/server.log`) |
-
-`TEMP_ROOT` is read from `.claude/maestro.json` at `.ai.temp_root`, defaulting to `.maestro`.
+| `LOG_FILE` | `{PLUGIN_ROOT}/.podium/server.log` (fallback: `/tmp/podium/server.log`) |
 
 ---
 

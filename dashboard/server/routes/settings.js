@@ -58,9 +58,9 @@ function getHookStatus() {
       const entries = settings.hooks?.[ht] || [];
       hooks[ht] = entries.some(
         (e) =>
-          (e.command && e.command.includes("hook-handler.js")) ||
+          (e.command && (e.command.includes("hook-handler.js") || e.command.includes("hook.mjs"))) ||
           (Array.isArray(e.hooks) &&
-            e.hooks.some((h) => h.command && h.command.includes("hook-handler.js")))
+            e.hooks.some((h) => h.command && (h.command.includes("hook-handler.js") || h.command.includes("hook.mjs"))))
       );
     }
     const installed = Object.values(hooks).every(Boolean);

@@ -1,8 +1,8 @@
 {
-  "id": "podium-maestro-agent-observer",
+  "id": "podium-agent-observer",
   "name": "Podium",
   "short_name": "Podium",
-  "description": "Maestro agent observer dashboard — WP Media",
+  "description": "Real-time agent observer dashboard for Claude Code — WP Media",
   "author": "WP Media",
   "start_url": ".",
   "scope": ".",
