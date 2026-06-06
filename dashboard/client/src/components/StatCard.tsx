@@ -26,17 +26,20 @@ export function StatCard({
   value,
   icon: Icon,
   trend,
-  accentColor = "text-amber-700 dark:text-accent",
+  accentColor = "text-accent",
   raw,
   loading = false,
 }: StatCardProps) {
   return (
-    <div className="bg-white dark:bg-surface-2 border border-gray-100 dark:border-border shadow-sm dark:shadow-none hover:shadow-md transition-shadow duration-200 rounded-xl p-5 flex flex-col gap-3">
+    <div className="card rounded-2xl p-5 flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
           {label}
         </span>
-        <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+        <div
+          className="w-9 h-9 rounded-2xl bg-accent/10 flex items-center justify-center flex-shrink-0"
+          style={{ boxShadow: "var(--inset-shadow)" }}
+        >
           <Icon className={`w-4 h-4 ${accentColor}`} />
         </div>
       </div>

@@ -1,7 +1,8 @@
 /**
  * @file index.css
- * @description Global styles and Tailwind CSS configuration for the application.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @description Neumorphism 2.0 design system — soft, embossed aesthetic.
+ *   Tactile feel with inset/outset shadows. Mid-tone gray foundation.
+ * @author WP Media
  */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -11,92 +12,103 @@
 @tailwind utilities;
 
 /* ── Theme tokens ──────────────────────────────────────────
- * Values are space-separated RGB *channels* (not hex) so Tailwind's
- * `rgb(var(--x) / <alpha-value>)` color definitions can apply opacity
- * modifiers (e.g. bg-accent/15, border-border/40). See tailwind.config.js.
- * `--accent-muted` stays a ready-made rgba for the few direct references.
+ * Space-separated RGB channels so Tailwind's opacity modifiers work.
  * ──────────────────────────────────────────────────────── */
 
 /* ── Light theme (default) ─────────────────────────────── */
 :root {
-  /* Surfaces: warm ivory "paper" floor → pure white cards */
-  --surface-0: 236 233 228;    /* page bg — warm linen */
-  --surface-1: 255 255 255;    /* sidebar */
-  --surface-2: 251 250 248;    /* inputs / secondary */
-  --surface-3: 255 255 255;    /* cards — white on linen = clear elevation */
-  --surface-4: 246 244 241;    /* hover */
-  --surface-5: 238 236 232;    /* pressed */
+  /* Neumorphism: warm ivory base, soft grays */
+  --surface-0: 245 245 248;    /* page bg */
+  --surface-1: 252 252 255;    /* sidebar */
+  --surface-2: 250 250 253;    /* cards */
+  --surface-3: 240 240 244;    /* hover/secondary */
+  --surface-4: 230 230 236;    /* active */
+  --surface-5: 220 220 228;    /* pressed */
 
-  --border: 220 216 210;
-  --border-light: 232 229 224;
+  --border: 200 200 210;
+  --border-light: 220 220 230;
 
-  --text-primary: 14 14 14;    /* near-black — max readability */
-  --text-muted:   72  72  72;  /* dark gray — always readable */
-  --text-dim:    120 120 120;  /* medium gray — still AA-compliant */
+  --text-primary: 20 20 28;
+  --text-muted: 100 100 120;
+  --text-dim: 140 140 160;
 
   --accent: 254 210 58;
   --accent-hover: 224 187 53;
-  --accent-muted: rgba(254,210,58,0.15);
+  --accent-muted: rgba(254, 210, 58, 0.12);
 
-  /* Multi-layer elevation: contact shadow + lift + ambient diffusion */
+  /* Neumorphism: soft dual-tone shadow (dark shadow + light highlight) */
   --card-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.05),
-    0 1px 2px 0 rgb(0 0 0 / 0.07),
-    0 4px 10px -2px rgb(0 0 0 / 0.09),
-    0 16px 32px -4px rgb(0 0 0 / 0.06);
+    0 4px 12px rgba(0, 0, 0, 0.08),
+    0 -2px 4px rgba(255, 255, 255, 0.6),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.05);
 
-  /* Elevated card (modals, dropdowns) */
+  /* Elevated: stronger shadow */
   --elevated-shadow:
-    0 0 0 1px rgb(0 0 0 / 0.07),
-    0 4px 6px -1px rgb(0 0 0 / 0.10),
-    0 12px 24px -4px rgb(0 0 0 / 0.12),
-    0 32px 48px -8px rgb(0 0 0 / 0.08);
+    0 8px 24px rgba(0, 0, 0, 0.12),
+    0 -2px 6px rgba(255, 255, 255, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9);
+
+  /* Pressed/inset state */
+  --inset-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.08),
+    inset 0 -2px 4px rgba(255, 255, 255, 0.6);
 }
 
 /* ── Dark theme ────────────────────────────────────────── */
 .dark {
-  --surface-0: 10 14 20;
-  --surface-1: 15 19 24;
-  --surface-2: 21 25 33;
-  --surface-3: 28 36 51;
-  --surface-4: 36 48 72;
-  --surface-5: 46 58 80;
-  --border: 46 50 67;
-  --border-light: 58 77 104;
-  --text-primary: 240 244 252;
-  --text-muted: 155 155 155;
-  --text-dim: 90 111 140;
+  /* Neumorphism dark: charcoal base, soft shadows work via color not light */
+  --surface-0: 18 18 24;
+  --surface-1: 24 24 32;
+  --surface-2: 32 32 44;
+  --surface-3: 40 40 56;
+  --surface-4: 50 50 68;
+  --surface-5: 60 60 80;
+
+  --border: 80 80 110;
+  --border-light: 100 100 140;
+
+  --text-primary: 245 245 255;
+  --text-muted: 160 160 180;
+  --text-dim: 100 110 140;
+
   --accent: 254 210 58;
-  --accent-hover: 224 187 53;
-  --accent-muted: rgba(254,210,58,0.15);
-  --card-shadow: none;
+  --accent-hover: 255 223 90;
+  --accent-muted: rgba(254, 210, 58, 0.12);
+
+  /* Dark neumorphism: darker shadow + lighter highlight */
+  --card-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 -2px 4px rgba(255, 255, 255, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+
   --elevated-shadow:
-    0 4px 6px -1px rgb(0 0 0 / 0.4),
-    0 12px 24px -4px rgb(0 0 0 / 0.5);
+    0 8px 24px rgba(0, 0, 0, 0.5),
+    0 -2px 6px rgba(255, 255, 255, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+
+  --inset-shadow:
+    inset 0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 -2px 4px rgba(255, 255, 255, 0.08);
 }
 
 body {
-  font-family: 'Whitney HTF Medium', 'Inter', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   color: rgb(var(--text-primary));
   background-color: rgb(var(--surface-0));
-}
-
-/* Subtle warm-linen texture for light mode */
-body:not(.dark) {
-  background-image:
-    radial-gradient(ellipse 80% 60% at 15% 40%, rgb(254 210 58 / 0.04) 0%, transparent 60%),
-    radial-gradient(ellipse 60% 80% at 85% 15%, rgb(59 130 246 / 0.025) 0%, transparent 50%),
-    radial-gradient(ellipse 100% 40% at 50% 100%, rgb(0 0 0 / 0.02) 0%, transparent 60%);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--border)) rgb(var(--surface-1));
+    scrollbar-color: rgb(var(--border)) transparent;
   }
 
   *::-webkit-scrollbar { width: 6px; height: 6px; }
-  *::-webkit-scrollbar-track { background: rgb(var(--surface-1)); }
+  *::-webkit-scrollbar-track { background: transparent; }
   *::-webkit-scrollbar-thumb {
     background: rgb(var(--border));
     border-radius: 3px;
@@ -104,7 +116,7 @@ body:not(.dark) {
   *::-webkit-scrollbar-thumb:hover { background: rgb(var(--border-light)); }
 
   ::selection {
-    background: rgba(254,210,58,0.35);
+    background: rgba(254, 210, 58, 0.25);
     color: rgb(var(--text-primary));
   }
 
@@ -122,12 +134,14 @@ body:not(.dark) {
 }
 
 @layer components {
+  /* ── Card — the foundational neumorphic surface ── */
   .card {
-    @apply bg-surface-3 border border-border rounded-xl;
+    @apply bg-surface-2 rounded-2xl;
     box-shadow: var(--card-shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
   }
 
-  /* Card with a subtle accent-tinted top edge in light mode */
+  /* Accent variant */
   .card-accent {
     @apply card;
   }
@@ -135,29 +149,84 @@ body:not(.dark) {
     border-top: 2px solid rgb(var(--accent) / 0.6);
   }
 
+  /* Hoverable card — lifts and softens shadow */
   .card-hover {
-    @apply card transition-all duration-200 hover:border-border-light hover:bg-surface-4;
+    @apply card cursor-pointer;
+  }
+  .card-hover:hover {
+    box-shadow: var(--elevated-shadow);
+    transform: translateY(-2px);
+  }
+  .card-hover:active {
+    box-shadow: var(--inset-shadow);
+    transform: translateY(0);
   }
 
+  /* ── Button — neumorphic raised/pressed states ── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-gray-900 text-sm font-semibold rounded-lg transition-colors duration-150;
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-gray-900 text-sm font-semibold rounded-lg transition-all duration-150;
+    box-shadow: var(--card-shadow);
+  }
+  .btn-primary:hover {
+    box-shadow: var(--elevated-shadow);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    box-shadow: var(--inset-shadow);
+    transform: translateY(0);
   }
 
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-4 rounded-lg transition-colors duration-150;
+    @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-3 rounded-lg transition-all duration-150;
+  }
+  .btn-ghost:active {
+    box-shadow: var(--inset-shadow);
   }
 
   .badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border whitespace-nowrap shrink-0;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border border-border whitespace-nowrap shrink-0;
   }
 
   .input {
     @apply bg-surface-2 border border-border rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors;
   }
 
-  /* Section label — small uppercase heading inside cards */
+  /* Section label — small uppercase heading */
   .section-label {
     @apply text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-600;
+  }
+
+  /* ── Sidebar neumorphic primitives ──
+     Raised by default, shadow lifts on hover, inverts (inset) on press.
+     The `.is-active` modifier holds the pressed state for the current route. */
+  .neu-nav {
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.18s ease, color 0.15s ease, background-color 0.15s ease,
+      transform 0.18s ease;
+  }
+  .neu-nav:hover {
+    box-shadow: var(--elevated-shadow);
+  }
+  .neu-nav:active {
+    box-shadow: var(--inset-shadow);
+  }
+  .neu-nav.is-active {
+    box-shadow: var(--inset-shadow);
+  }
+
+  /* Tactile button — raised, lifts on hover, presses in on click. */
+  .neu-btn {
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.18s ease, color 0.15s ease, background-color 0.15s ease,
+      transform 0.18s ease;
+  }
+  .neu-btn:hover {
+    box-shadow: var(--elevated-shadow);
+    transform: translateY(-1px);
+  }
+  .neu-btn:active {
+    box-shadow: var(--inset-shadow);
+    transform: translateY(0);
   }
 }
 

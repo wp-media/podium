@@ -57,10 +57,11 @@ export function ThemeToggle({ collapsed }: ThemeToggleProps) {
   return (
     <button
       onClick={toggle}
-      className={`w-full h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
+      style={{ boxShadow: "var(--card-shadow)" }}
+      className={`w-full h-10 rounded-lg bg-surface-2 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 ${
         collapsed
-          ? "flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-surface-3"
-          : "flex items-center gap-2.5 px-3 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-surface-3"
+          ? "flex items-center justify-center"
+          : "flex items-center gap-2.5 px-3"
       }`}
       title={label}
       aria-label={label}
