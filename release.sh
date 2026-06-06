@@ -21,6 +21,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_JSON="$SCRIPT_DIR/.claude-plugin/plugin.json"
 CLIENT_PKG="$SCRIPT_DIR/dashboard/client/package.json"
+ROOT_PKG="$SCRIPT_DIR/package.json"
 CLIENT_DIR="$SCRIPT_DIR/dashboard/client"
 
 # ── Preconditions ─────────────────────────────────────────────────────────────
@@ -53,6 +54,14 @@ node -e "
   fs.writeFileSync('$CLIENT_PKG', JSON.stringify(p, null, 2) + '\n');
 "
 
+echo "  Bumping package.json..."
+node -e "
+  const fs = require('fs');
+  const p = JSON.parse(fs.readFileSync('$ROOT_PKG','utf8'));
+  p.version = '$VERSION';
+  fs.writeFileSync('$ROOT_PKG', JSON.stringify(p, null, 2) + '\n');
+"
+
 # ── Build dashboard ───────────────────────────────────────────────────────────
 echo "  Building dashboard client..."
 npm --prefix "$CLIENT_DIR" run build
@@ -61,7 +70,8 @@ npm --prefix "$CLIENT_DIR" run build
 echo "  Staging release files..."
 git -C "$SCRIPT_DIR" add \
   ".claude-plugin/plugin.json" \
-  "dashboard/client/package.json"
+  "dashboard/client/package.json" \
+  "package.json"
 git -C "$SCRIPT_DIR" add -f "dashboard/client/dist"
 
 git -C "$SCRIPT_DIR" commit -m "chore: release v$VERSION"
