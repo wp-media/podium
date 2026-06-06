@@ -17,6 +17,7 @@ import { Workflow, RefreshCw, Download, AlertCircle, Info } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
 import type { WorkflowData, WSMessage } from "../lib/types";
+import { loadAdvancedMetrics } from "../lib/displaySettings";
 
 import { WorkflowStats } from "../components/workflows/WorkflowStats";
 import { OrchestrationDAG } from "../components/workflows/OrchestrationDAG";
@@ -42,6 +43,17 @@ export function Workflows() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics);
+
+  useEffect(() => {
+    const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
+    window.addEventListener("storage", handler);
+    window.addEventListener("podium-settings-changed", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("podium-settings-changed", handler);
+    };
+  }, []);
 
   const fetchData = useCallback(async () => {
     try {
@@ -147,57 +159,63 @@ export function Workflows() {
       />
 
       {/* Stats Row */}
-      <WorkflowStats stats={data.stats} />
+      {advancedMetrics && <WorkflowStats stats={data.stats} />}
 
       {/* Section 1: Agent Orchestration DAG */}
-      <Section
-        number={1}
-        title={t("orchestration.title")}
-        subtitle={t("orchestration.subtitle")}
-        infoKey="orchestration"
-      >
-        <OrchestrationDAG
-          data={data.orchestration}
-          onNodeClick={setSelectedNode}
-          selectedNode={selectedNode}
-        />
-        {selectedNode && (
-          <div className="mt-3 flex items-center gap-2">
-            <span className="text-sm text-gray-600 dark:text-gray-500">{t("filteredBy")}</span>
-            <span className="badge bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent border border-accent/20 text-xs">
-              {selectedNode}
-            </span>
-            <button
-              onClick={() => setSelectedNode(null)}
-              className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline"
-            >
-              {t("clearFilter")}
-            </button>
-          </div>
-        )}
-      </Section>
+      {advancedMetrics && (
+        <Section
+          number={1}
+          title={t("orchestration.title")}
+          subtitle={t("orchestration.subtitle")}
+          infoKey="orchestration"
+        >
+          <OrchestrationDAG
+            data={data.orchestration}
+            onNodeClick={setSelectedNode}
+            selectedNode={selectedNode}
+          />
+          {selectedNode && (
+            <div className="mt-3 flex items-center gap-2">
+              <span className="text-sm text-gray-600 dark:text-gray-500">{t("filteredBy")}</span>
+              <span className="badge bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent border border-accent/20 text-xs">
+                {selectedNode}
+              </span>
+              <button
+                onClick={() => setSelectedNode(null)}
+                className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline"
+              >
+                {t("clearFilter")}
+              </button>
+            </div>
+          )}
+        </Section>
+      )}
 
       {/* Section 2: Tool Execution Flow */}
-      <Section
-        number={2}
-        title={t("toolFlow.title")}
-        subtitle={t("toolFlow.subtitle")}
-        infoKey="toolFlow"
-      >
-        <ToolExecutionFlow data={data.toolFlow} filterAgentType={selectedNode} />
-      </Section>
+      {advancedMetrics && (
+        <Section
+          number={2}
+          title={t("toolFlow.title")}
+          subtitle={t("toolFlow.subtitle")}
+          infoKey="toolFlow"
+        >
+          <ToolExecutionFlow data={data.toolFlow} filterAgentType={selectedNode} />
+        </Section>
+      )}
 
       {/* Section 3: Agent Collaboration Network */}
-      <Section
-        number={3}
-        title={t("pipeline.title")}
-        subtitle={t("pipeline.subtitle")}
-        infoKey="pipeline"
-      >
-        <AgentCollaborationNetwork effectiveness={data.effectiveness} edges={data.cooccurrence} />
-      </Section>
+      {advancedMetrics && (
+        <Section
+          number={3}
+          title={t("pipeline.title")}
+          subtitle={t("pipeline.subtitle")}
+          infoKey="pipeline"
+        >
+          <AgentCollaborationNetwork effectiveness={data.effectiveness} edges={data.cooccurrence} />
+        </Section>
+      )}
 
-      {/* Section 4 + 5: Two Column */}
+      {/* Section 4 + 5: Two Column (patterns hidden when advanced metrics off) */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Section
           number={4}
@@ -208,14 +226,16 @@ export function Workflows() {
           <SubagentEffectiveness data={data.effectiveness} />
         </Section>
 
-        <Section
-          number={5}
-          title={t("patterns.title")}
-          subtitle={t("patterns.subtitle")}
-          infoKey="patterns"
-        >
-          <WorkflowPatterns data={data.patterns} onPatternClick={() => {}} />
-        </Section>
+        {advancedMetrics && (
+          <Section
+            number={5}
+            title={t("patterns.title")}
+            subtitle={t("patterns.subtitle")}
+            infoKey="patterns"
+          >
+            <WorkflowPatterns data={data.patterns} onPatternClick={() => {}} />
+          </Section>
+        )}
       </div>
 
       {/* Section 6 + 7: Two Column */}
@@ -240,49 +260,55 @@ export function Workflows() {
       </div>
 
       {/* Section 8: Agent Concurrency Timeline */}
-      <Section
-        number={8}
-        title={t("concurrency.title")}
-        subtitle={t("concurrency.subtitle")}
-        infoKey="concurrency"
-      >
-        <ConcurrencyTimeline data={data.concurrency} />
-      </Section>
+      {advancedMetrics && (
+        <Section
+          number={8}
+          title={t("concurrency.title")}
+          subtitle={t("concurrency.subtitle")}
+          infoKey="concurrency"
+        >
+          <ConcurrencyTimeline data={data.concurrency} />
+        </Section>
+      )}
 
       {/* Section 9 + 10: Two Column */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Section
-          number={9}
-          title={t("complexity.title")}
-          subtitle={t("complexity.subtitle")}
-          infoKey="complexity"
-        >
-          <SessionComplexityScatter data={data.complexity} onSessionClick={setSelectedSessionId} />
-        </Section>
+      {advancedMetrics && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Section
+            number={9}
+            title={t("complexity.title")}
+            subtitle={t("complexity.subtitle")}
+            infoKey="complexity"
+          >
+            <SessionComplexityScatter data={data.complexity} onSessionClick={setSelectedSessionId} />
+          </Section>
 
-        <Section
-          number={10}
-          title={t("compaction.title")}
-          subtitle={t("compaction.subtitle")}
-          infoKey="compaction"
-        >
-          <CompactionImpact data={data.compaction} />
-        </Section>
-      </div>
+          <Section
+            number={10}
+            title={t("compaction.title")}
+            subtitle={t("compaction.subtitle")}
+            infoKey="compaction"
+          >
+            <CompactionImpact data={data.compaction} />
+          </Section>
+        </div>
+      )}
 
       {/* Section 11: Session Drill-In */}
-      <Section
-        number={11}
-        title={t("drillIn.title")}
-        subtitle={t("drillIn.subtitle")}
-        infoKey="drillIn"
-      >
-        <SessionDrillIn
-          sessionId={selectedSessionId}
-          onClose={() => setSelectedSessionId(null)}
-          onSelectSession={(id) => setSelectedSessionId(id)}
-        />
-      </Section>
+      {advancedMetrics && (
+        <Section
+          number={11}
+          title={t("drillIn.title")}
+          subtitle={t("drillIn.subtitle")}
+          infoKey="drillIn"
+        >
+          <SessionDrillIn
+            sessionId={selectedSessionId}
+            onClose={() => setSelectedSessionId(null)}
+            onSelectSession={(id) => setSelectedSessionId(id)}
+          />
+        </Section>
+      )}
     </div>
   );
 }

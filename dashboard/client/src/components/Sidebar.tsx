@@ -34,6 +34,7 @@ import type { LucideIcon } from "lucide-react";
 import { eventBus } from "../lib/eventBus";
 import { ThemeToggle } from "./ThemeToggle";
 import type { WSMessage } from "../lib/types";
+import { loadAdvancedMetrics } from "../lib/displaySettings";
 
 const ALL_NAV_ITEMS = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
@@ -138,8 +139,23 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
     return () => window.removeEventListener("podium-settings-changed", handler);
   }, []);
 
+  // Advanced metrics — controls visibility of Run Claude nav item
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics);
+
+  useEffect(() => {
+    const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
+    window.addEventListener("storage", handler);
+    window.addEventListener("podium-settings-changed", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("podium-settings-changed", handler);
+    };
+  }, []);
+
   const NAV_ITEMS = ALL_NAV_ITEMS.filter(
-    (item) => item.key !== "kanban" || kanbanVisible
+    (item) =>
+      (item.key !== "kanban" || kanbanVisible) &&
+      (item.key !== "run" || advancedMetrics)
   );
 
   // Track whether nav items are clipped by overflow so we can render
