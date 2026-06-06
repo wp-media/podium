@@ -83,11 +83,11 @@
   --accent-hover: 224 187 53;
   --accent-muted: rgba(254,210,58,0.15);
 
-  /* ── Glass tokens (dark) ── faint white film over navy + orbs */
-  --glass-bg: rgba(255, 255, 255, 0.04);
-  --glass-bg-strong: rgba(255, 255, 255, 0.07);
-  --glass-border: rgba(255, 255, 255, 0.09);
-  --glass-border-soft: rgba(255, 255, 255, 0.06);
+  /* ── Glass tokens (dark) ── visible frosted film over navy + orbs */
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-bg-strong: rgba(255, 255, 255, 0.10);
+  --glass-border: rgba(255, 255, 255, 0.13);
+  --glass-border-soft: rgba(255, 255, 255, 0.08);
   /* Depth shadow + soft top inner-highlight to fake a lit glass edge. */
   --glass-shadow:
     0 2px 8px -2px rgb(0 0 0 / 0.5),
@@ -114,9 +114,14 @@ body {
 }
 
 /* ── Fixed gradient-orb backdrop ───────────────────────────
- * A single full-viewport fixed pseudo-element holds large, blurred radial
- * orbs. Because it's fixed and pointer-events:none, the orbs stay put and
- * glow *through* translucent glass cards as the page scrolls.
+ * Two stacked fixed pseudo-elements:
+ *   body::before  — large, sharp-ish orbs at full opacity (the actual color)
+ *   body::after   — a second pass for the deepest glow center
+ *
+ * Key insight: do NOT apply filter:blur() to the pseudo-element — it dilutes
+ * the orbs into near-invisibility. Instead, make each orb large so it is
+ * naturally soft, and rely on backdrop-filter:blur() on the glass cards to
+ * create the frosted effect where the orbs bleed through.
  * ──────────────────────────────────────────────────────── */
 body::before {
   content: "";
@@ -124,27 +129,21 @@ body::before {
   inset: 0;
   z-index: -1;
   pointer-events: none;
-  /* Blur softens the orbs into ambient light pools. */
-  filter: blur(40px);
-  /* Light theme orbs — warm amber (top-left 6%), soft sky-blue
-   * (bottom-right 5%), very subtle pink (center 3%). */
-  background-image:
-    radial-gradient(700px 700px at 12% 14%, rgb(254 210 58 / 0.06) 0%, transparent 62%),
-    radial-gradient(720px 720px at 88% 86%, rgb(56 142 255 / 0.05) 0%, transparent 60%),
-    radial-gradient(640px 640px at 50% 50%, rgb(236 72 153 / 0.03) 0%, transparent 60%);
-  background-repeat: no-repeat;
-  transition: opacity 0.3s ease;
+  /* Light theme — warm amber top-left, sky-blue bottom-right, pink center.
+   * Higher opacity (0.18-0.22) so they're actually visible through glass cards. */
+  background:
+    radial-gradient(ellipse 55% 45% at 8% 10%,  rgb(254 210 58 / 0.22) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 55% at 92% 90%, rgb(56 142 255 / 0.18) 0%, transparent 68%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgb(236 72 153 / 0.10) 0%, transparent 65%);
 }
 
-/* Dark theme orbs — yellow accent (top-right 8%), indigo/blue
- * (bottom-left 6%), purple (center 4%), emerald hint (bottom-right 3%). */
-.dark body::before,
-body.dark::before {
-  background-image:
-    radial-gradient(760px 760px at 86% 10%, rgb(254 210 58 / 0.08) 0%, transparent 60%),
-    radial-gradient(800px 800px at 12% 88%, rgb(79 70 229 / 0.06) 0%, transparent 58%),
-    radial-gradient(700px 700px at 50% 46%, rgb(147 51 234 / 0.04) 0%, transparent 62%),
-    radial-gradient(620px 620px at 90% 92%, rgb(16 185 129 / 0.03) 0%, transparent 60%);
+/* Dark theme orbs — deeper, more saturated to punch through the dark bg. */
+.dark body::before {
+  background:
+    radial-gradient(ellipse 55% 50% at 88% 6%,  rgb(254 210 58 / 0.18) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 55% at 8%  92%, rgb(79 70 229 / 0.22) 0%, transparent 65%),
+    radial-gradient(ellipse 45% 45% at 50% 48%, rgb(147 51 234 / 0.14) 0%, transparent 60%),
+    radial-gradient(ellipse 35% 35% at 94% 88%, rgb(16 185 129 / 0.10) 0%, transparent 65%);
 }
 
 @layer base {
@@ -204,10 +203,10 @@ body.dark::before {
 
   /* Sidebar / overlay glass — softer border, taller blur, no heavy shadow. */
   .glass-panel {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border-soft);
-    -webkit-backdrop-filter: blur(24px) saturate(160%);
-    backdrop-filter: blur(24px) saturate(160%);
+    background: var(--glass-bg-strong);
+    border: 1px solid var(--glass-border);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    backdrop-filter: blur(32px) saturate(180%);
   }
 
   /* Card with a subtle accent-tinted top edge in light mode. */
