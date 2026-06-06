@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - develop
+  pull_request:
+    branches:
+      - develop
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dashboard dependencies
+        run: npm install --prefix dashboard
+
+      - name: Install dashboard client dependencies
+        run: npm install --prefix dashboard/client
+
+      - name: Build client
+        run: npm run build --prefix dashboard/client
+
+      - name: Run smoke test
+        run: bash scripts/smoke-test.sh
+
+      - name: Run server tests
+        run: node --test dashboard/server/__tests__/*.test.js
+
+      - name: Run client tests
+        run: npm run test --prefix dashboard/client -- --run
+        env:
+          CI: "true"
