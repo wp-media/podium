@@ -752,13 +752,15 @@ function TabPanel({
   onDelete,
   onCreateMemory,
 }: TabPanelProps) {
+  const plugins = data.plugins?.plugins ?? null;
   switch (tab) {
     case "overview":
-      return <OverviewPanel overview={data.overview} />;
+      return <OverviewPanel overview={data.overview} plugins={plugins} />;
     case "skills":
       return (
         <MdItemList
           items={data.skills}
+          plugins={plugins}
           search={search}
           onOpen={onOpenFile}
           onEdit={onEdit}
@@ -770,6 +772,7 @@ function TabPanel({
       return (
         <MdItemList
           items={data.agents}
+          plugins={plugins}
           search={search}
           onOpen={onOpenFile}
           onEdit={onEdit}
@@ -781,6 +784,7 @@ function TabPanel({
       return (
         <MdItemList
           items={data.commands}
+          plugins={plugins}
           search={search}
           onOpen={onOpenFile}
           onEdit={onEdit}
@@ -792,6 +796,7 @@ function TabPanel({
       return (
         <MdItemList
           items={data.outputStyles}
+          plugins={null}
           search={search}
           onOpen={onOpenFile}
           onEdit={onEdit}
@@ -920,10 +925,29 @@ const TONES: Record<Tone, { iconBg: string; iconText: string; bar: string; ring:
   },
 };
 
-function OverviewPanel({ overview }: { overview: CcOverview | null }) {
+function OverviewPanel({
+  overview,
+  plugins,
+}: {
+  overview: CcOverview | null;
+  plugins: CcPlugin[] | null;
+}) {
   const { t } = useTranslation("ccConfig");
   if (!overview) return <SkeletonRows n={4} />;
   const { roots, counts } = overview;
+
+  // Tally contributions from enabled plugins
+  const pluginTotals = (plugins ?? [])
+    .filter((p) => p.enabled !== false && p.contributes)
+    .reduce(
+      (acc, p) => ({
+        commands: acc.commands + (p.contributes?.commands ?? 0),
+        skills: acc.skills + (p.contributes?.skills ?? 0),
+        agents: acc.agents + (p.contributes?.agents ?? 0),
+      }),
+      { commands: 0, skills: 0, agents: 0 }
+    );
+
   return (
     <div className="space-y-5">
       <section>
@@ -969,6 +993,7 @@ function OverviewPanel({ overview }: { overview: CcOverview | null }) {
             label={t("tabs.skills")}
             user={counts.skills.user}
             project={counts.skills.project}
+            plugin={pluginTotals.skills || undefined}
           />
           <SummaryStat
             tone="sky"
@@ -976,6 +1001,7 @@ function OverviewPanel({ overview }: { overview: CcOverview | null }) {
             label={t("tabs.agents")}
             user={counts.agents.user}
             project={counts.agents.project}
+            plugin={pluginTotals.agents || undefined}
           />
           <SummaryStat
             tone="cyan"
@@ -983,6 +1009,7 @@ function OverviewPanel({ overview }: { overview: CcOverview | null }) {
             label={t("tabs.commands")}
             user={counts.commands.user}
             project={counts.commands.project}
+            plugin={pluginTotals.commands || undefined}
           />
           <SummaryStat
             tone="pink"
@@ -1043,12 +1070,15 @@ interface SummaryStatProps {
   value?: number;
   user?: number;
   project?: number;
+  // Optional extra count contributed by plugins
+  plugin?: number;
 }
 
-function SummaryStat({ tone, icon: Icon, label, value, user, project }: SummaryStatProps) {
+function SummaryStat({ tone, icon: Icon, label, value, user, project, plugin }: SummaryStatProps) {
   const { t } = useTranslation("ccConfig");
   const T = TONES[tone];
-  const total = value !== undefined ? value : (user ?? 0) + (project ?? 0);
+  const baseTotal = value !== undefined ? value : (user ?? 0) + (project ?? 0);
+  const total = baseTotal + (plugin ?? 0);
   const showBreakdown = user !== undefined && project !== undefined;
   return (
     <div className={`relative rounded-lg border border-border bg-surface-2 overflow-hidden`}>
@@ -1070,6 +1100,7 @@ function SummaryStat({ tone, icon: Icon, label, value, user, project }: SummaryS
           {showBreakdown && (
             <span className="text-[10px] text-gray-700 dark:text-gray-500 truncate">
               {user} {t("overview.user")} · {project} {t("overview.project")}
+              {plugin ? ` · ${plugin} plugins` : ""}
             </span>
           )}
         </div>
@@ -1113,6 +1144,7 @@ function RootRow({
 
 interface MdItemListProps {
   items: CcMdItem[] | null;
+  plugins: CcPlugin[] | null;
   search: string;
   onOpen: (path: string) => void;
   onEdit: (
@@ -1128,7 +1160,9 @@ interface MdItemListProps {
   kind: "skills" | "agents" | "commands" | "outputStyles";
 }
 
-function MdItemList({ items, search, onOpen, onEdit, onDelete, kind }: MdItemListProps) {
+function MdItemList({ items, plugins, search, onOpen, onEdit, onDelete, kind }: MdItemListProps) {
+  const { t } = useTranslation("ccConfig");
+
   const filtered = useMemo(() => {
     if (!items) return null;
     const q = search.toLowerCase();
@@ -1142,21 +1176,159 @@ function MdItemList({ items, search, onOpen, onEdit, onDelete, kind }: MdItemLis
     });
   }, [items, search]);
 
+  // Plugin rows — only for skills/agents/commands, not outputStyles
+  const pluginRows = useMemo(() => {
+    if (!plugins || kind === "outputStyles") return [];
+    const countKey = kind as "skills" | "agents" | "commands";
+    return plugins.filter(
+      (p) =>
+        p.enabled !== false &&
+        (p.contributes?.[countKey] ?? 0) > 0 &&
+        (!search ||
+          p.key.toLowerCase().includes(search.toLowerCase()) ||
+          p.name.toLowerCase().includes(search.toLowerCase()))
+    );
+  }, [plugins, kind, search]);
+
   if (!filtered) return <SkeletonRows n={6} />;
-  if (filtered.length === 0) return <Empty />;
+
+  const userItems = filtered.filter((it) => it.scope === "user");
+  const projectItems = filtered.filter((it) => it.scope === "project");
+  const otherItems = filtered.filter((it) => it.scope !== "user" && it.scope !== "project");
+
+  if (filtered.length === 0 && pluginRows.length === 0) return <Empty />;
+
+  const SectionHeader = ({ label }: { label: string }) => (
+    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 mb-2 mt-1">
+      {label}
+    </h3>
+  );
+
+  // If items are not split by scope (all other scopes or no grouping needed), render flat
+  const hasMultipleGroups =
+    (userItems.length > 0 ? 1 : 0) +
+      (projectItems.length > 0 ? 1 : 0) +
+      (otherItems.length > 0 ? 1 : 0) +
+      (pluginRows.length > 0 ? 1 : 0) >
+    1;
+
+  if (!hasMultipleGroups) {
+    return (
+      <div className="space-y-2">
+        {filtered.map((it) => (
+          <MdItemCard
+            key={`${it.scope}:${it.name}`}
+            item={it}
+            onOpen={onOpen}
+            onEdit={onEdit}
+            onDelete={onDelete}
+            kind={kind}
+          />
+        ))}
+        {pluginRows.map((p) => (
+          <PluginContribRow key={p.key} plugin={p} kind={kind as "skills" | "agents" | "commands"} />
+        ))}
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-2">
-      {filtered.map((it) => (
-        <MdItemCard
-          key={`${it.scope}:${it.name}`}
-          item={it}
-          onOpen={onOpen}
-          onEdit={onEdit}
-          onDelete={onDelete}
-          kind={kind}
-        />
-      ))}
+    <div className="space-y-3">
+      {userItems.length > 0 && (
+        <div>
+          <SectionHeader label={t("scope.user")} />
+          <div className="space-y-2">
+            {userItems.map((it) => (
+              <MdItemCard
+                key={`${it.scope}:${it.name}`}
+                item={it}
+                onOpen={onOpen}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                kind={kind}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {projectItems.length > 0 && (
+        <div>
+          <SectionHeader label={t("scope.project")} />
+          <div className="space-y-2">
+            {projectItems.map((it) => (
+              <MdItemCard
+                key={`${it.scope}:${it.name}`}
+                item={it}
+                onOpen={onOpen}
+                onEdit={onEdit}
+                onDelete={onDelete}
+                kind={kind}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+      {otherItems.length > 0 && (
+        <div className="space-y-2">
+          {otherItems.map((it) => (
+            <MdItemCard
+              key={`${it.scope}:${it.name}`}
+              item={it}
+              onOpen={onOpen}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              kind={kind}
+            />
+          ))}
+        </div>
+      )}
+      {pluginRows.length > 0 && (
+        <div>
+          <SectionHeader label={t("tabs.plugins")} />
+          <div className="space-y-2">
+            {pluginRows.map((p) => (
+              <PluginContribRow key={p.key} plugin={p} kind={kind as "skills" | "agents" | "commands"} />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PluginContribRow({
+  plugin: p,
+  kind,
+}: {
+  plugin: CcPlugin;
+  kind: "skills" | "agents" | "commands";
+}) {
+  const { t } = useTranslation("ccConfig");
+  const count = p.contributes?.[kind] ?? 0;
+  const labelMap: Record<string, string> = {
+    skills: t("plugins.skills", { count }),
+    agents: t("plugins.agents", { count }),
+    commands: t("plugins.commands", { count }),
+  };
+  return (
+    <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 hover:border-border/80 transition-colors">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <PlugZap className="w-3.5 h-3.5 text-gray-600 dark:text-gray-500 flex-shrink-0" />
+          <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{p.name}</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface-3 text-gray-600 dark:text-gray-400 border border-border truncate">
+            {p.key}
+          </span>
+          {p.version && (
+            <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-accent/20 dark:bg-accent/10 text-gray-900 dark:text-accent border border-accent/20">
+              v{p.version}
+            </span>
+          )}
+        </div>
+        <span className="text-[11px] font-medium px-2 py-1 rounded-md border border-border bg-surface-1 text-gray-700 dark:text-gray-300 flex-shrink-0 whitespace-nowrap">
+          {labelMap[kind]}
+        </span>
+      </div>
     </div>
   );
 }
