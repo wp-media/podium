@@ -1055,6 +1055,17 @@ export function Dashboard() {
     localStorage.setItem("dashboard_tab", activeTab);
   }, [activeTab]);
 
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics());
+  useEffect(() => {
+    const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
+    window.addEventListener("podium-settings-changed", handler);
+    window.addEventListener("storage", handler);
+    return () => {
+      window.removeEventListener("podium-settings-changed", handler);
+      window.removeEventListener("storage", handler);
+    };
+  }, []);
+
   const [stats, setStats] = useState<Stats | null>(null);
   const [activeAgents, setActiveAgents] = useState<Agent[]>([]);
   const [recentEvents, setRecentEvents] = useState<DashboardEvent[]>([]);
