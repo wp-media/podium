@@ -36,6 +36,39 @@ export default {
         sans: ["'Whitney HTF Medium'", "'Inter'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
         mono: ["'JetBrains Mono'", "'Fira Code'", "Consolas", "monospace"],
       },
+      // Backdrop-blur scale tuned for the glassmorphism surfaces. The named
+      // tokens map to the blur radii used by .card (xl), .glass-panel, and
+      // .card-glass (2xl) in index.css so utilities stay in sync.
+      backdropBlur: {
+        xs: "2px",
+        sm: "4px",
+        DEFAULT: "8px",
+        md: "12px",
+        lg: "16px",
+        xl: "20px",
+        "2xl": "28px",
+        "3xl": "40px",
+      },
+      backdropSaturate: {
+        125: "1.25",
+        150: "1.5",
+        170: "1.7",
+        200: "2",
+      },
+      // Glass tints exposed as utilities (bg-glass, border-glass, ...) for
+      // ad-hoc surfaces that want the frosted look without the full .card class.
+      backgroundColor: {
+        glass: "var(--glass-bg)",
+        "glass-strong": "var(--glass-bg-strong)",
+      },
+      borderColor: {
+        glass: "var(--glass-border)",
+        "glass-soft": "var(--glass-border-soft)",
+      },
+      boxShadow: {
+        glass: "var(--glass-shadow)",
+        "glass-strong": "var(--glass-shadow-strong)",
+      },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
         "fade-in": "fadeIn 0.3s ease-out",

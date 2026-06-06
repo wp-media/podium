@@ -1,6 +1,6 @@
 /**
  * @file Workflows.tsx
- * @description Displays comprehensive analytics on agent orchestration patterns, including DAGs of agent spawning, tool usage flows, collaboration networks, and session complexity metrics, with real-time updates and interactive filtering.
+ * @description Displays comprehensive analytics on agent orchestration patterns, including DAGs of agent spawning, tool usage flows, collaboration networks, and session complexity metrics, with real-time updates and interactive filtering. When Advanced Metrics is disabled, falls back to a simple live view listing the currently active sessions.
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 
@@ -13,12 +13,13 @@ import {
   useSyncExternalStore,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { Workflow, RefreshCw, Download, AlertCircle, Info } from "lucide-react";
+import { Workflow, RefreshCw, Download, AlertCircle, Info, Activity } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
-import type { WorkflowData, WSMessage } from "../lib/types";
+import type { WorkflowData, WSMessage, Session } from "../lib/types";
 import { loadAdvancedMetrics } from "../lib/displaySettings";
 
+import { SessionCard } from "../components/SessionCard";
 import { WorkflowStats } from "../components/workflows/WorkflowStats";
 import { OrchestrationDAG } from "../components/workflows/OrchestrationDAG";
 import { ToolExecutionFlow } from "../components/workflows/ToolExecutionFlow";
@@ -45,6 +46,11 @@ export function Workflows() {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics);
 
+  // Simple-mode (advanced metrics off) state: a plain list of active sessions.
+  const [activeSessions, setActiveSessions] = useState<Session[]>([]);
+  const [simpleLoading, setSimpleLoading] = useState(true);
+  const [simpleError, setSimpleError] = useState<string | null>(null);
+
   useEffect(() => {
     const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
     window.addEventListener("storage", handler);
@@ -54,6 +60,12 @@ export function Workflows() {
       window.removeEventListener("podium-settings-changed", handler);
     };
   }, []);
+
+  // Keep the status filter in sync with the display mode: the analytics view
+  // defaults to "all", while the simple live view focuses on active sessions.
+  useEffect(() => {
+    setStatusFilter(advancedMetrics ? "all" : "active");
+  }, [advancedMetrics]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -68,27 +80,54 @@ export function Workflows() {
     }
   }, [statusFilter]);
 
+  const fetchActiveSessions = useCallback(async () => {
+    try {
+      setSimpleError(null);
+      const result = await api.sessions.list({ status: "active", limit: 20 });
+      setActiveSessions(result.sessions);
+      setLastUpdated(new Date());
+    } catch (err) {
+      setSimpleError(err instanceof Error ? err.message : t("failedLoad"));
+    } finally {
+      setSimpleLoading(false);
+    }
+  }, []);
+
+  // Analytics data is only needed in advanced mode; the simple view fetches a
+  // lightweight active-sessions list instead.
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (advancedMetrics) {
+      fetchData();
+    } else {
+      fetchActiveSessions();
+    }
+  }, [advancedMetrics, fetchData, fetchActiveSessions]);
 
   // Auto-refresh on WebSocket events
   useEffect(() => {
     let debounceTimer: ReturnType<typeof setTimeout>;
     const handler = (_msg: WSMessage) => {
       clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(fetchData, 3000);
+      debounceTimer = setTimeout(() => {
+        if (advancedMetrics) fetchData();
+        else fetchActiveSessions();
+      }, 3000);
     };
     const unsub = eventBus.subscribe(handler);
     return () => {
       unsub();
       clearTimeout(debounceTimer);
     };
-  }, [fetchData]);
+  }, [advancedMetrics, fetchData, fetchActiveSessions]);
 
   const handleRefresh = () => {
-    setLoading(true);
-    fetchData();
+    if (advancedMetrics) {
+      setLoading(true);
+      fetchData();
+    } else {
+      setSimpleLoading(true);
+      fetchActiveSessions();
+    }
   };
 
   const handleExport = () => {
@@ -102,10 +141,93 @@ export function Workflows() {
     URL.revokeObjectURL(url);
   };
 
+  // ── Simple mode (advanced metrics off): live active-session list ──
+  if (!advancedMetrics) {
+    if (simpleLoading && activeSessions.length === 0) {
+      return (
+        <div className="space-y-6">
+          <PageHeader
+            advancedMetrics={advancedMetrics}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            onRefresh={handleRefresh}
+            onExport={handleExport}
+            lastUpdated={null}
+          />
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="card h-32 animate-pulse bg-surface-2" />
+            ))}
+          </div>
+        </div>
+      );
+    }
+
+    if (simpleError && activeSessions.length === 0) {
+      return (
+        <div className="space-y-6">
+          <PageHeader
+            advancedMetrics={advancedMetrics}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
+            onRefresh={handleRefresh}
+            onExport={handleExport}
+            lastUpdated={null}
+          />
+          <div className="card flex flex-col items-center justify-center py-16 gap-4">
+            <AlertCircle className="w-10 h-10 text-red-700 dark:text-red-400" />
+            <p className="text-red-700 dark:text-red-400 text-sm">{simpleError}</p>
+            <button onClick={handleRefresh} className="btn-primary text-sm">
+              {t("common:retry")}
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        <PageHeader
+          advancedMetrics={advancedMetrics}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          onRefresh={handleRefresh}
+          onExport={handleExport}
+          lastUpdated={lastUpdated}
+        />
+
+        {activeSessions.length === 0 ? (
+          <div className="card flex flex-col items-center justify-center py-20 gap-3 text-center">
+            <div className="w-12 h-12 rounded-2xl bg-accent/15 flex items-center justify-center">
+              <Activity className="w-6 h-6 text-accent" />
+            </div>
+            <p className="text-base font-semibold text-gray-900 dark:text-gray-100">
+              {t("simple.emptyTitle", "No active sessions")}
+            </p>
+            <p className="text-sm text-gray-600 dark:text-gray-500 max-w-md">
+              {t(
+                "simple.emptyDescription",
+                "There are no running Claude Code sessions right now. Active sessions will appear here in real time as they start."
+              )}
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+            {activeSessions.map((session) => (
+              <SessionCard key={session.id} session={session} />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ── Advanced mode: full analytics ──
   if (loading && !data) {
     return (
       <div className="space-y-6">
         <PageHeader
+          advancedMetrics={advancedMetrics}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
           onRefresh={handleRefresh}
@@ -128,6 +250,7 @@ export function Workflows() {
     return (
       <div className="space-y-6">
         <PageHeader
+          advancedMetrics={advancedMetrics}
           statusFilter={statusFilter}
           onStatusFilterChange={setStatusFilter}
           onRefresh={handleRefresh}
@@ -151,6 +274,7 @@ export function Workflows() {
     <div className="space-y-6">
       {/* Page Header */}
       <PageHeader
+        advancedMetrics={advancedMetrics}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
         onRefresh={handleRefresh}
@@ -159,63 +283,57 @@ export function Workflows() {
       />
 
       {/* Stats Row */}
-      {advancedMetrics && <WorkflowStats stats={data.stats} />}
+      <WorkflowStats stats={data.stats} />
 
       {/* Section 1: Agent Orchestration DAG */}
-      {advancedMetrics && (
-        <Section
-          number={1}
-          title={t("orchestration.title")}
-          subtitle={t("orchestration.subtitle")}
-          infoKey="orchestration"
-        >
-          <OrchestrationDAG
-            data={data.orchestration}
-            onNodeClick={setSelectedNode}
-            selectedNode={selectedNode}
-          />
-          {selectedNode && (
-            <div className="mt-3 flex items-center gap-2">
-              <span className="text-sm text-gray-600 dark:text-gray-500">{t("filteredBy")}</span>
-              <span className="badge bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent border border-accent/20 text-xs">
-                {selectedNode}
-              </span>
-              <button
-                onClick={() => setSelectedNode(null)}
-                className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline"
-              >
-                {t("clearFilter")}
-              </button>
-            </div>
-          )}
-        </Section>
-      )}
+      <Section
+        number={1}
+        title={t("orchestration.title")}
+        subtitle={t("orchestration.subtitle")}
+        infoKey="orchestration"
+      >
+        <OrchestrationDAG
+          data={data.orchestration}
+          onNodeClick={setSelectedNode}
+          selectedNode={selectedNode}
+        />
+        {selectedNode && (
+          <div className="mt-3 flex items-center gap-2">
+            <span className="text-sm text-gray-600 dark:text-gray-500">{t("filteredBy")}</span>
+            <span className="badge bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent border border-accent/20 text-xs">
+              {selectedNode}
+            </span>
+            <button
+              onClick={() => setSelectedNode(null)}
+              className="text-sm text-gray-600 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 underline"
+            >
+              {t("clearFilter")}
+            </button>
+          </div>
+        )}
+      </Section>
 
       {/* Section 2: Tool Execution Flow */}
-      {advancedMetrics && (
-        <Section
-          number={2}
-          title={t("toolFlow.title")}
-          subtitle={t("toolFlow.subtitle")}
-          infoKey="toolFlow"
-        >
-          <ToolExecutionFlow data={data.toolFlow} filterAgentType={selectedNode} />
-        </Section>
-      )}
+      <Section
+        number={2}
+        title={t("toolFlow.title")}
+        subtitle={t("toolFlow.subtitle")}
+        infoKey="toolFlow"
+      >
+        <ToolExecutionFlow data={data.toolFlow} filterAgentType={selectedNode} />
+      </Section>
 
       {/* Section 3: Agent Collaboration Network */}
-      {advancedMetrics && (
-        <Section
-          number={3}
-          title={t("pipeline.title")}
-          subtitle={t("pipeline.subtitle")}
-          infoKey="pipeline"
-        >
-          <AgentCollaborationNetwork effectiveness={data.effectiveness} edges={data.cooccurrence} />
-        </Section>
-      )}
+      <Section
+        number={3}
+        title={t("pipeline.title")}
+        subtitle={t("pipeline.subtitle")}
+        infoKey="pipeline"
+      >
+        <AgentCollaborationNetwork effectiveness={data.effectiveness} edges={data.cooccurrence} />
+      </Section>
 
-      {/* Section 4 + 5: Two Column (patterns hidden when advanced metrics off) */}
+      {/* Section 4 + 5: Two Column */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Section
           number={4}
@@ -226,16 +344,14 @@ export function Workflows() {
           <SubagentEffectiveness data={data.effectiveness} />
         </Section>
 
-        {advancedMetrics && (
-          <Section
-            number={5}
-            title={t("patterns.title")}
-            subtitle={t("patterns.subtitle")}
-            infoKey="patterns"
-          >
-            <WorkflowPatterns data={data.patterns} onPatternClick={() => {}} />
-          </Section>
-        )}
+        <Section
+          number={5}
+          title={t("patterns.title")}
+          subtitle={t("patterns.subtitle")}
+          infoKey="patterns"
+        >
+          <WorkflowPatterns data={data.patterns} onPatternClick={() => {}} />
+        </Section>
       </div>
 
       {/* Section 6 + 7: Two Column */}
@@ -260,55 +376,49 @@ export function Workflows() {
       </div>
 
       {/* Section 8: Agent Concurrency Timeline */}
-      {advancedMetrics && (
-        <Section
-          number={8}
-          title={t("concurrency.title")}
-          subtitle={t("concurrency.subtitle")}
-          infoKey="concurrency"
-        >
-          <ConcurrencyTimeline data={data.concurrency} />
-        </Section>
-      )}
+      <Section
+        number={8}
+        title={t("concurrency.title")}
+        subtitle={t("concurrency.subtitle")}
+        infoKey="concurrency"
+      >
+        <ConcurrencyTimeline data={data.concurrency} />
+      </Section>
 
       {/* Section 9 + 10: Two Column */}
-      {advancedMetrics && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Section
-            number={9}
-            title={t("complexity.title")}
-            subtitle={t("complexity.subtitle")}
-            infoKey="complexity"
-          >
-            <SessionComplexityScatter data={data.complexity} onSessionClick={setSelectedSessionId} />
-          </Section>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Section
+          number={9}
+          title={t("complexity.title")}
+          subtitle={t("complexity.subtitle")}
+          infoKey="complexity"
+        >
+          <SessionComplexityScatter data={data.complexity} onSessionClick={setSelectedSessionId} />
+        </Section>
 
-          <Section
-            number={10}
-            title={t("compaction.title")}
-            subtitle={t("compaction.subtitle")}
-            infoKey="compaction"
-          >
-            <CompactionImpact data={data.compaction} />
-          </Section>
-        </div>
-      )}
+        <Section
+          number={10}
+          title={t("compaction.title")}
+          subtitle={t("compaction.subtitle")}
+          infoKey="compaction"
+        >
+          <CompactionImpact data={data.compaction} />
+        </Section>
+      </div>
 
       {/* Section 11: Session Drill-In */}
-      {advancedMetrics && (
-        <Section
-          number={11}
-          title={t("drillIn.title")}
-          subtitle={t("drillIn.subtitle")}
-          infoKey="drillIn"
-        >
-          <SessionDrillIn
-            sessionId={selectedSessionId}
-            onClose={() => setSelectedSessionId(null)}
-            onSelectSession={(id) => setSelectedSessionId(id)}
-          />
-        </Section>
-      )}
+      <Section
+        number={11}
+        title={t("drillIn.title")}
+        subtitle={t("drillIn.subtitle")}
+        infoKey="drillIn"
+      >
+        <SessionDrillIn
+          sessionId={selectedSessionId}
+          onClose={() => setSelectedSessionId(null)}
+          onSelectSession={(id) => setSelectedSessionId(id)}
+        />
+      </Section>
     </div>
   );
 }
@@ -457,12 +567,14 @@ function ChartInfoPopover({ infoKey, title }: { infoKey: string; title: string }
 
 // ── Page Header ──
 function PageHeader({
+  advancedMetrics,
   statusFilter,
   onStatusFilterChange,
   onRefresh,
   onExport,
   lastUpdated,
 }: {
+  advancedMetrics: boolean;
   statusFilter: StatusFilter;
   onStatusFilterChange: (f: StatusFilter) => void;
   onRefresh: () => void;
@@ -503,22 +615,26 @@ function PageHeader({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        {/* Status filter tabs */}
-        <div className="flex bg-surface-2 rounded-lg p-0.5 border border-border">
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              onClick={() => onStatusFilterChange(f.value)}
-              className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
-                statusFilter === f.value
-                  ? "bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent"
-                  : "text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+        {/* Status filter tabs — only shown in advanced mode where the filter
+            actually changes which analytics data is fetched. In simple mode the
+            page always lists active sessions, so the tabs would be misleading. */}
+        {advancedMetrics && (
+          <div className="flex bg-surface-2 rounded-lg p-0.5 border border-border">
+            {filters.map((f) => (
+              <button
+                key={f.value}
+                onClick={() => onStatusFilterChange(f.value)}
+                className={`px-3 py-1.5 rounded-md text-xs font-medium transition-colors ${
+                  statusFilter === f.value
+                    ? "bg-accent/25 dark:bg-accent/15 text-gray-900 dark:text-accent"
+                    : "text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Actions */}
         <button
@@ -528,13 +644,17 @@ function PageHeader({
         >
           <RefreshCw className="w-4 h-4" />
         </button>
-        <button
-          onClick={onExport}
-          className="p-2 rounded-lg text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-surface-3 transition-colors"
-          title={t("exportJson")}
-        >
-          <Download className="w-4 h-4" />
-        </button>
+        {/* Export only applies to the analytics JSON, which doesn't exist in
+            simple mode — hide it when advanced metrics are off. */}
+        {advancedMetrics && (
+          <button
+            onClick={onExport}
+            className="p-2 rounded-lg text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300 hover:bg-surface-3 transition-colors"
+            title={t("exportJson")}
+          >
+            <Download className="w-4 h-4" />
+          </button>
+        )}
 
         {lastUpdated && (
           <span className="text-[10px] text-gray-600 ml-1">
