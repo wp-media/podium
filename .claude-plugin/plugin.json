@@ -1,6 +1,6 @@
 {
   "name": "podium",
-  "version": "1.1.5",
+  "version": "1.1.6",
   "description": "Real-time agent observer dashboard for Claude Code. Visualizes every tool call, agent spawn, and session lifecycle at zero token cost.",
   "author": {
     "name": "wp-media"
