@@ -69,19 +69,20 @@ Claude Code harness
       │  fires on every hook event
       │  (SessionStart, PreToolUse, PostToolUse, SubagentStart …)
       ▼
-~/.claude/podium/hook.mjs     ← reads stdin, appends one JSON line, exits < 1 s
+~/.claude/podium/hook.mjs     ← reads stdin JSON, writes JSONL backup, exits < 1.5 s
       │
+      │  fire-and-forget POST (waits for response before exit)
       ▼
-.podium/{session_id}/events.jsonl
+server.mjs  →  dashboard/server/index.js   Express + SQLite + WebSocket  :4820
       │
-      │  tailed every 500 ms
+      │  WebSocket push on every event
       ▼
-server.mjs                    ← zero-dep HTTP + SSE server  :4820
-      │
-      │  Server-Sent Events
-      ▼
-dashboard/                    ← pre-built React SPA, served from dist/
+dashboard/client/dist/        ← pre-built React SPA
 ```
+
+- **JSONL** (`{cwd}/.podium/{session_id}/events.jsonl`) is a local backup — not the primary stream.
+- **Live data** reaches the browser via the HTTP POST → WebSocket push chain above.
+- **Port discovery**: on startup the server writes `~/.claude/.agent-dashboard.json` with its live port and PID. The hook reads this file so it posts to the right port even when `DASHBOARD_PORT` is customised.
 
 Token cost: **zero**. Hooks run outside the LLM turn.
 
@@ -135,8 +136,8 @@ podium/
 ```
 
 The script will:
-1. Bump the version in `.claude-plugin/plugin.json` and `dashboard/client/package.json`
-2. Build the dashboard client (bakes the version into the bundle)
+1. Bump the version in `.claude-plugin/plugin.json`, `dashboard/client/package.json`, `dashboard/package.json`, and `package.json`
+2. Install server dependencies, then build the dashboard client (bakes the version into the bundle)
 3. Commit the version bump + built `dist/`
 4. Tag `v1.2.0` and push branch + tag
 
@@ -147,10 +148,13 @@ Then create the GitHub Release from the tag — plugin users pick it up automati
 ## Local Development
 
 ```bash
-# Install dashboard dependencies
-cd dashboard && npm install
+# Install all dependencies (server + client)
+cd dashboard && npm install && cd client && npm install
 
-# Run dev server (hot reload, proxies API to server.mjs)
+# Or use the setup script:
+cd dashboard && npm run setup
+
+# Run dev server (hot reload, proxies API to Express backend)
 npm run dev
 
 # Build for release

@@ -3,9 +3,15 @@ import react from "@vitejs/plugin-react";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 
-const { version: APP_VERSION } = JSON.parse(
-  readFileSync(resolve(__dirname, "../../.claude-plugin/plugin.json"), "utf-8")
-) as { version: string };
+let APP_VERSION = "0.0.0";
+try {
+  const pluginJson = JSON.parse(
+    readFileSync(resolve(__dirname, "../../.claude-plugin/plugin.json"), "utf-8")
+  ) as { version: string };
+  APP_VERSION = pluginJson.version;
+} catch {
+  console.warn("[vite] .claude-plugin/plugin.json not found — using version 0.0.0");
+}
 
 // Honour DASHBOARD_PORT so the proxy follows when `npm run dev:server` is
 // moved off the default 4820 (e.g. when an SSH `LocalForward` already holds

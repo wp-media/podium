@@ -18,7 +18,7 @@
     "observability"
   ],
   "scripts": {
-    "install": "node install.mjs",
+    "setup": "node install.mjs",
     "uninstall": "node install.mjs --uninstall",
     "check": "node install.mjs --check"
   }

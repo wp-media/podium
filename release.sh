@@ -21,8 +21,10 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PLUGIN_JSON="$SCRIPT_DIR/.claude-plugin/plugin.json"
 CLIENT_PKG="$SCRIPT_DIR/dashboard/client/package.json"
+DASHBOARD_PKG="$SCRIPT_DIR/dashboard/package.json"
 ROOT_PKG="$SCRIPT_DIR/package.json"
 CLIENT_DIR="$SCRIPT_DIR/dashboard/client"
+DASHBOARD_DIR="$SCRIPT_DIR/dashboard"
 
 # ── Preconditions ─────────────────────────────────────────────────────────────
 if ! git -C "$SCRIPT_DIR" diff --quiet || ! git -C "$SCRIPT_DIR" diff --cached --quiet; then
@@ -54,6 +56,14 @@ node -e "
   fs.writeFileSync('$CLIENT_PKG', JSON.stringify(p, null, 2) + '\n');
 "
 
+echo "  Bumping dashboard/package.json..."
+node -e "
+  const fs = require('fs');
+  const p = JSON.parse(fs.readFileSync('$DASHBOARD_PKG','utf8'));
+  p.version = '$VERSION';
+  fs.writeFileSync('$DASHBOARD_PKG', JSON.stringify(p, null, 2) + '\n');
+"
+
 echo "  Bumping package.json..."
 node -e "
   const fs = require('fs');
@@ -61,6 +71,10 @@ node -e "
   p.version = '$VERSION';
   fs.writeFileSync('$ROOT_PKG', JSON.stringify(p, null, 2) + '\n');
 "
+
+# ── Install server dependencies (required for smoke test) ─────────────────────
+echo "  Installing server dependencies..."
+npm --prefix "$DASHBOARD_DIR" install --prefer-offline
 
 # ── Build dashboard ───────────────────────────────────────────────────────────
 echo "  Building dashboard client..."
@@ -76,6 +90,7 @@ echo "  Staging release files..."
 git -C "$SCRIPT_DIR" add \
   ".claude-plugin/plugin.json" \
   "dashboard/client/package.json" \
+  "dashboard/package.json" \
   "package.json"
 git -C "$SCRIPT_DIR" add -f "dashboard/client/dist"
 

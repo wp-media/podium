@@ -8,3 +8,5 @@ build/
 coverage/
 .podium/
 .maestro/
+# Root package has no deps — lockfile is noise
+package-lock.json

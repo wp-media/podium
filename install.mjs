@@ -18,8 +18,6 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 // Registered path in settings.json must not depend on the plugin cache hash.
 const STABLE_DIR = join(process.env.HOME ?? '~', '.claude', 'podium')
 const STABLE_HOOK = join(STABLE_DIR, 'hook.mjs')
-mkdirSync(STABLE_DIR, { recursive: true })
-copyFileSync(resolve(join(__dirname, 'hook.mjs')), STABLE_HOOK)
 
 const HOOK_PATH = STABLE_HOOK
 
@@ -86,6 +84,12 @@ function hasActivePodiumHooks(settings) {
   return hasHookMatching(settings, PODIUM_MARKER, PLUGIN_CACHE_MARKER)
 }
 
+// Only copy hook.mjs for install/uninstall — --check must be purely read-only.
+if (MODE !== 'check') {
+  mkdirSync(STABLE_DIR, { recursive: true })
+  copyFileSync(resolve(join(__dirname, 'hook.mjs')), STABLE_HOOK)
+}
+
 if (MODE === 'check') {
   if (isInstalled(settings)) {
     console.log('Podium hooks: installed')
@@ -101,7 +105,7 @@ if (MODE === 'check') {
 
 if (MODE === 'uninstall') {
   if (!settings.hooks) { console.log('Nothing to uninstall.'); process.exit(0) }
-  const allMarkers = [PODIUM_MARKER, ...LEGACY_MARKERS]
+  const allMarkers = [PODIUM_MARKER, PLUGIN_CACHE_MARKER, ...LEGACY_MARKERS]
   let removed = 0
   for (const evt of HOOK_EVENTS) {
     if (!Array.isArray(settings.hooks[evt])) continue

@@ -16,30 +16,80 @@
 
 import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { homedir } from 'node:os'
 import http from 'node:http'
 
-/**
- * Fire-and-forget POST to the Podium dashboard server.
- * Never blocks — if the server is not running, silently fails.
- */
-function postToDashboard(hookType, data) {
+// ── Port discovery ─────────────────────────────────────────────────────────────
+// The server writes ~/.claude/.agent-dashboard.json at startup with its live port
+// and PID. We read it here so hook.mjs always posts to the right port, even when
+// DASHBOARD_PORT is changed or multiple dashboards are running simultaneously.
+// Falls back to the conventional 4820 when the file is absent or unreadable.
+function resolveDashboardPorts() {
+  // CLAUDE_DASHBOARD_PORT env override — operator-controlled; returns as sole target
+  const envPort = parseInt(process.env.CLAUDE_DASHBOARD_PORT || '', 10)
+  if (Number.isInteger(envPort) && envPort > 0) return [envPort]
+
   try {
-    const payload = JSON.stringify({ hook_type: hookType, data })
-    const req = http.request({
-      hostname: '127.0.0.1',
-      port: 4820,
-      path: '/api/hooks/event',
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(payload),
-      },
+    const infoPath = join(homedir(), '.claude', '.agent-dashboard.json')
+    const parsed = JSON.parse(readFileSync(infoPath, 'utf8'))
+    const servers = Array.isArray(parsed.servers)
+      ? parsed.servers.filter((s) => s && Number.isInteger(s?.port))
+      : (Number.isInteger(parsed.port) ? [{ port: parsed.port, pid: parsed.pid }] : [])
+
+    const live = servers.filter((s) => {
+      if (!Number.isInteger(s.pid) || s.pid <= 0) return true // no PID, assume alive
+      try { process.kill(s.pid, 0); return true } catch (e) { return Boolean(e) && e.code === 'EPERM' }
     })
-    req.setTimeout(1000, () => req.destroy())
-    req.on('error', () => {}) // silent — server may not be running
-    req.write(payload)
-    req.end()
-  } catch { /* silent */ }
+
+    if (live.length > 0) return [...new Set(live.map((s) => s.port))]
+  } catch { /* file absent or unreadable — fall through */ }
+
+  return [4820] // conventional fallback
+}
+
+/**
+ * POST the hook payload to every live Podium dashboard server.
+ * Calls onDone() once all requests have resolved (success, error, or timeout).
+ * Never throws — if no server is running all requests error immediately and
+ * onDone() fires right away.
+ */
+function postToDashboard(hookType, data, onDone) {
+  const ports = resolveDashboardPorts()
+  let payload
+  try {
+    payload = JSON.stringify({ hook_type: hookType, data })
+  } catch {
+    onDone()
+    return
+  }
+
+  let pending = ports.length
+  if (pending === 0) { onDone(); return }
+
+  function done() {
+    pending--
+    if (pending === 0) onDone()
+  }
+
+  for (const port of ports) {
+    try {
+      const req = http.request({
+        hostname: '127.0.0.1',
+        port,
+        path: '/api/hooks/event',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(payload),
+        },
+      })
+      req.setTimeout(1000, () => { req.destroy(); done() })
+      req.on('error', () => done())
+      req.on('response', (res) => { res.resume(); res.on('end', done) })
+      req.write(payload)
+      req.end()
+    } catch { done() }
+  }
 }
 
 // Returns the value if it's a non-empty string, otherwise null.
@@ -48,6 +98,7 @@ function asString(v) {
 }
 
 // ── Safety deadline ───────────────────────────────────────────────────────────
+// Hard exit in case postToDashboard's callback never fires (defensive).
 const DEADLINE = setTimeout(() => process.exit(0), 1_500)
 DEADLINE.unref()
 
@@ -103,16 +154,26 @@ let raw = ''
 process.stdin.setEncoding('utf8')
 process.stdin.on('data', (c) => { raw += c })
 process.stdin.on('end', () => {
-  try { run(raw.trim()) } catch { /* silent — never crash Claude Code */ }
-  process.exit(0)
+  let post = null
+  try { post = run(raw.trim()) } catch { /* silent — never crash Claude Code */ }
+
+  // Wait for the HTTP POST to complete before exiting — this is what makes
+  // real-time event streaming actually work. The DEADLINE above (1500ms) is
+  // the hard safety net if the callback never fires.
+  if (post) {
+    postToDashboard(post.hookType, post.data, () => process.exit(0))
+  } else {
+    process.exit(0)
+  }
 })
 
 // ── Main logic ────────────────────────────────────────────────────────────────
+// Returns { hookType, data } for the caller to POST, or null if nothing to send.
 function run(input) {
-  if (!input) return
+  if (!input) return null
 
   let p
-  try { p = JSON.parse(input) } catch { return }
+  try { p = JSON.parse(input) } catch { return null }
 
   const {
     hook_event_name,
@@ -124,7 +185,7 @@ function run(input) {
     tool_response,
   } = p
 
-  if (!hook_event_name || !session_id) return
+  if (!hook_event_name || !session_id) return null
 
   // ── Resolve TEMP_ROOT ───────────────────────────────────────────────────────
   const projectRoot = cwd || process.cwd()
@@ -140,7 +201,7 @@ function run(input) {
 
   // ── Ensure session directory ────────────────────────────────────────────────
   const sessionDir = join(tempRoot, session_id)
-  try { mkdirSync(sessionDir, { recursive: true }) } catch { return }
+  try { mkdirSync(sessionDir, { recursive: true }) } catch { return null }
   const eventsFile = join(sessionDir, 'events.jsonl')
 
   // ── Build event ─────────────────────────────────────────────────────────────
@@ -262,7 +323,7 @@ function run(input) {
       break
 
     default:
-      return // ignore everything else
+      return null // ignore everything else
   }
 
   // ── Append to JSONL ─────────────────────────────────────────────────────────
@@ -272,6 +333,6 @@ function run(input) {
     } catch { /* disk full or permissions — silent */ }
   }
 
-  // ── Forward full payload to Podium dashboard (fire-and-forget) ───────────────
-  postToDashboard(p.hook_event_name, p)
+  // Return for async POST in caller — postToDashboard is called after run() returns
+  return event ? { hookType: hook_event_name, data: p } : null
 }

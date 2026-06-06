@@ -9,6 +9,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import {
   Activity,
   Wrench,
@@ -26,7 +27,7 @@ import { styleForTool } from "./conversation/toolStyle";
 import type { Agent, Session, SessionStats } from "../lib/types";
 
 interface SessionOverviewProps {
-  children?: React.ReactNode;
+  children?: ReactNode;
   session: Session;
   agents: Agent[];
 }

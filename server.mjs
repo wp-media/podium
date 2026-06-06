@@ -23,7 +23,14 @@ startServer(app, PORT).then((server) => {
 
 const shutdown = (signal) => {
   console.log(`\n${signal} received — shutting down…`);
-  if (httpServer) httpServer.close();
+  if (httpServer) {
+    // Close new connections immediately; destroy existing keep-alive/SSE/WS
+    // connections so the process doesn't wait up to 5 s for them to drain.
+    if (typeof httpServer.closeAllConnections === 'function') {
+      httpServer.closeAllConnections(); // Node 18.2+
+    }
+    httpServer.close();
+  }
   try { require(join(__dirname, 'dashboard', 'server', 'db.js')).db.close(); } catch { /* ok */ }
   try { require(join(__dirname, 'dashboard', 'server', 'lib', 'server-info.js')).removeServerInfo(); } catch { /* ok */ }
   setTimeout(() => process.exit(0), 5000).unref();

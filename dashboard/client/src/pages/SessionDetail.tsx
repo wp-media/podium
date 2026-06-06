@@ -83,10 +83,15 @@ export function SessionDetail() {
   const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics);
 
   // Keep advancedMetrics in sync if the user toggles it in Settings while this page is open.
+  // 'storage' fires for cross-tab changes; 'podium-settings-changed' fires in the same tab.
   useEffect(() => {
     const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
     window.addEventListener("storage", handler);
-    return () => window.removeEventListener("storage", handler);
+    window.addEventListener("podium-settings-changed", handler);
+    return () => {
+      window.removeEventListener("storage", handler);
+      window.removeEventListener("podium-settings-changed", handler);
+    };
   }, []);
   const [loading, setLoading] = useState(true);
   // True when this session is currently being driven by an in-flight Run

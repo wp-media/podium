@@ -14,17 +14,16 @@
     "README.md",
     "LICENSE"
   ],
-  "author": "Son Nguyen",
-  "funding": "https://github.com/sponsors/hoangsonww",
+  "author": "WP Media",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hoangsonww/Claude-Code-Agent-Monitor.git"
+    "url": "git+https://github.com/wp-media/podium.git"
   },
   "bugs": {
-    "url": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor/issues"
+    "url": "https://github.com/wp-media/podium/issues"
   },
   "license": "MIT",
-  "homepage": "https://github.com/hoangsonww/Claude-Code-Agent-Monitor#readme",
+  "homepage": "https://github.com/wp-media/podium#readme",
   "keywords": [
     "claude",
     "claude-code",
@@ -52,11 +51,11 @@
     "prepare": "git config core.hooksPath .husky || true",
     "dev": "node scripts/dev.js",
     "dev:raw": "concurrently -n server,client -c blue,green \"npm run dev:server\" \"npm run dev:client\"",
-    "dev:server": "node --watch server/index.js",
+    "dev:server": "node server/index.js",
     "dev:client": "cd client && npm run dev",
     "build": "cd client && npm run build",
     "start": "node server/index.js",
-    "setup": "npm install && (cd client && npm install) && (cd vscode-extension && npm install)",
+    "setup": "npm install && (cd client && npm install)",
     "update:pull-setup": "git pull --ff-only && npm run setup",
     "mcp:install": "npm --prefix mcp install",
     "mcp:build": "npm --prefix mcp run build",

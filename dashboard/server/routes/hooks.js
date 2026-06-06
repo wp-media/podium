@@ -904,7 +904,10 @@ function watchdogCheck() {
         // Pre-existing transcript errors must not re-overwrite status, otherwise
         // sessions the user already recovered from (UserPromptSubmit reactivation
         // at the top of processEvent) get yanked back into 'error' on every poll.
-        stmts.updateSession.run(null, "error", null, null, sess.id);
+        // Guard mirrors the equivalent check in processEvent (line ~669).
+        if (sess.status !== "error") {
+          stmts.updateSession.run(null, "error", null, null, sess.id);
+        }
         broadcast("session_updated", stmts.getSession.get(sess.id));
         if (mainAgent && mainAgent.status !== "completed" && mainAgent.status !== "error") {
           stmts.updateAgent.run(null, "error", null, null, null, null, mainAgentId);

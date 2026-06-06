@@ -28,16 +28,12 @@ Derived paths (hold these for every subcommand):
 | `HOOK_SCRIPT` | `{PLUGIN_ROOT}/hook.mjs` |
 | `SERVER_SCRIPT` | `{PLUGIN_ROOT}/server.mjs` |
 | `DASHBOARD_ROOT` | `{PLUGIN_ROOT}/dashboard` |
-| `PORT` | detected below |
-| `LOG_FILE` | `{PLUGIN_ROOT}/.podium/server.log` (fallback: `/tmp/podium/server.log`) |
+| `PORT` | `4820` (or `$DASHBOARD_PORT` env var if set) |
+| `LOG_FILE` | `~/.claude/podium/server.log` (stable — survives plugin updates) |
 
-Detect the port the server will actually bind to (avoids stale-cache mismatches):
-
-```bash
-PORT=$(node -e "const t=require('fs').readFileSync('{SERVER_SCRIPT}','utf8');const m=t.match(/port:\s*(\d+)/);process.stdout.write(m?.[1]??'4820')" 2>/dev/null || echo "4820")
-```
-
-If `PORT` is not `4820`, warn: "Cached server.mjs uses port `{PORT}` (expected 4820). The plugin cache may be stale — consider reinstalling."
+The server port is `4820` by default. If the user has set `DASHBOARD_PORT` in their
+environment, use that value instead. The log file lives at a stable path that does not
+change between plugin version updates.
 
 ---
 
@@ -95,11 +91,13 @@ HTTP 200 → already up, skip to step e.
 ls {DASHBOARD_ROOT}/node_modules/.bin 2>/dev/null && echo "ok" || echo "missing"
 ```
 
-If missing:
+If missing, use a lockfile to prevent concurrent installs from corrupting node_modules:
 
 ```bash
-cd {DASHBOARD_ROOT} && npm install 2>&1 | tail -5
+flock {DASHBOARD_ROOT}/.npm-install.lock -c "cd {DASHBOARD_ROOT} && npm install 2>&1 | tail -5"
 ```
+
+If `flock` is unavailable (non-Linux): `cd {DASHBOARD_ROOT} && npm install 2>&1 | tail -5`
 
 Takes 1–2 minutes on first run. The `dist/` directory is pre-built — no build
 step needed.

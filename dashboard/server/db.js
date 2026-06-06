@@ -149,6 +149,10 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_agents_session_type ON agents(session_id, type);
   CREATE INDEX IF NOT EXISTS idx_dashboard_runs_started ON dashboard_runs(started_at DESC);
   CREATE INDEX IF NOT EXISTS idx_dashboard_runs_session ON dashboard_runs(session_id);
+  -- Partial index for the "active" OR-condition: status='error' AND ended_at IS NULL
+  -- Covers the second branch of the active filter so error-but-running sessions
+  -- are found in O(log n) rather than a full scan of all 'error' rows.
+  CREATE INDEX IF NOT EXISTS idx_sessions_error_active ON sessions(ended_at) WHERE status='error' AND ended_at IS NULL;
 `);
 
 // Default model pricing — shared by initial seed + startup top-up + reset endpoint
@@ -434,11 +438,9 @@ const stmts = {
      FROM sessions s LEFT JOIN agents a ON a.session_id = s.id
      GROUP BY s.id ORDER BY s.updated_at DESC LIMIT ? OFFSET ?`
   ),
-  listSessionsByStatus: db.prepare(
-    `SELECT s.*, COUNT(a.id) as agent_count, s.updated_at as last_activity
-     FROM sessions s LEFT JOIN agents a ON a.session_id = s.id
-     WHERE s.status = ? GROUP BY s.id ORDER BY s.updated_at DESC LIMIT ? OFFSET ?`
-  ),
+  // listSessionsByStatus removed — was dead code (never called) and used the old
+  // single-equality WHERE clause that excluded error-but-running sessions.
+  // The sessions list route builds its own dynamic WHERE clause for all filter paths.
   insertSession: db.prepare(
     "INSERT INTO sessions (id, name, status, cwd, model, started_at, updated_at, metadata) VALUES (?, ?, ?, ?, ?, strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), strftime('%Y-%m-%dT%H:%M:%fZ', 'now'), ?)"
   ),
@@ -525,7 +527,7 @@ const stmts = {
   ),
   findStaleSessions: db.prepare(
     `SELECT id FROM sessions
-     WHERE status = 'active' AND id != ?
+     WHERE (status = 'active' OR (status = 'error' AND ended_at IS NULL)) AND id != ?
        AND updated_at < strftime('%Y-%m-%dT%H:%M:%fZ', 'now', '-' || ? || ' minutes')`
   ),
 
@@ -712,10 +714,10 @@ const stmts = {
   `),
   sessionTokenTotals: db.prepare(`
     SELECT
-      COALESCE(SUM(input_tokens), 0) as input_tokens,
-      COALESCE(SUM(output_tokens), 0) as output_tokens,
-      COALESCE(SUM(cache_read_tokens), 0) as cache_read_tokens,
-      COALESCE(SUM(cache_write_tokens), 0) as cache_write_tokens
+      COALESCE(SUM(input_tokens + baseline_input), 0) as input_tokens,
+      COALESCE(SUM(output_tokens + baseline_output), 0) as output_tokens,
+      COALESCE(SUM(cache_read_tokens + baseline_cache_read), 0) as cache_read_tokens,
+      COALESCE(SUM(cache_write_tokens + baseline_cache_write), 0) as cache_write_tokens
     FROM token_usage
     WHERE session_id = ?
   `),
