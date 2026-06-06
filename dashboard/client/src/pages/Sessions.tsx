@@ -28,12 +28,25 @@ import type { Session, DashboardEvent } from "../lib/types";
 
 const PAGE_SIZE = 10;
 
+function getSessionDisplayName(session: Session, t: (key: string) => string): string {
+  if (!session.name) return `${t("defaultName")}${session.id.slice(0, 8)}`;
+  // If the name is just the cwd basename with no spaces/description, append a short date
+  const cwdBase = session.cwd ? session.cwd.split("/").pop() : null;
+  if (cwdBase && session.name === cwdBase) {
+    const date = session.started_at
+      ? new Date(session.started_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })
+      : "";
+    return date ? `${session.name} · ${date}` : session.name;
+  }
+  return session.name;
+}
+
 export function Sessions() {
   const navigate = useNavigate();
   const { t } = useTranslation("sessions");
   const [sessions, setSessions] = useState<Session[]>([]);
   const [total, setTotal] = useState(0);
-  const [filter, setFilter] = useState("");
+  const [filter, setFilter] = useState("active");
   // `searchInput` is what the user types; `search` is the debounced value
   // actually sent to the server. Without debouncing, every keystroke would
   // hit /api/sessions.
@@ -344,7 +357,7 @@ export function Sessions() {
                       <div>
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {session.name || `${t("defaultName")}${session.id.slice(0, 8)}`}
+                            {getSessionDisplayName(session, t)}
                           </p>
                           {dashboardRunIds.has(session.id) && (
                             <Link
