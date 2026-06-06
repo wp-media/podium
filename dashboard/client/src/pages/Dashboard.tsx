@@ -1312,34 +1312,40 @@ export function Dashboard() {
               trend={stats ? `${allSubagents.length}${t("totalTrend")}` : undefined}
               loading={!stats}
             />
-            <StatCard
-              label={t("eventsToday")}
-              value={stats ? fmt(stats.events_today) : ""}
-              raw={stats ? stats.events_today.toLocaleString() : undefined}
-              icon={Zap}
-              accentColor="text-amber-700 dark:text-accent"
-              loading={!stats}
-            />
-            <StatCard
-              label={t("totalEvents")}
-              value={stats ? fmt(stats.total_events) : ""}
-              raw={stats ? stats.total_events.toLocaleString() : undefined}
-              icon={Activity}
-              accentColor="text-indigo-700 dark:text-indigo-400"
-              loading={!stats}
-            />
-            <StatCard
-              label={t("totalCost")}
-              value={totalCost !== null ? fmtCost(totalCost) : ""}
-              raw={
-                totalCost !== null
-                  ? `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                  : undefined
-              }
-              icon={DollarSign}
-              accentColor="text-emerald-700 dark:text-emerald-400"
-              loading={totalCost === null}
-            />
+            {advancedMetrics && (
+              <StatCard
+                label={t("eventsToday")}
+                value={stats ? fmt(stats.events_today) : ""}
+                raw={stats ? stats.events_today.toLocaleString() : undefined}
+                icon={Zap}
+                accentColor="text-amber-700 dark:text-accent"
+                loading={!stats}
+              />
+            )}
+            {advancedMetrics && (
+              <StatCard
+                label={t("totalEvents")}
+                value={stats ? fmt(stats.total_events) : ""}
+                raw={stats ? stats.total_events.toLocaleString() : undefined}
+                icon={Activity}
+                accentColor="text-indigo-700 dark:text-indigo-400"
+                loading={!stats}
+              />
+            )}
+            {advancedMetrics && (
+              <StatCard
+                label={t("totalCost")}
+                value={totalCost !== null ? fmtCost(totalCost) : ""}
+                raw={
+                  totalCost !== null
+                    ? `$${totalCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : undefined
+                }
+                icon={DollarSign}
+                accentColor="text-emerald-700 dark:text-emerald-400"
+                loading={totalCost === null}
+              />
+            )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-0 min-w-0 flex-1 min-h-0">

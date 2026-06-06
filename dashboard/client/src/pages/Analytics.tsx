@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { api } from "../lib/api";
 import { eventBus } from "../lib/eventBus";
+import { loadAdvancedMetrics } from "../lib/displaySettings";
 import { fmt, fmtCost, fmtCostFull, formatModelName } from "../lib/format";
 import { Tip } from "../components/Tip";
 import { StatValueSkeleton, TextSkeleton } from "../components/Skeleton";
@@ -605,8 +606,9 @@ export function Analytics() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"tokens" | "cost" | "workflow" | "productivity">(
-    "cost"
+    loadAdvancedMetrics() ? "tokens" : "productivity"
   );
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics());
   const wsConnected = useSyncExternalStore(eventBus.onConnection, () => eventBus.connected);
 
   const load = useCallback(async () => {
@@ -641,6 +643,20 @@ export function Analytics() {
       }
     });
   }, [load]);
+
+  useEffect(() => {
+    const handleSettingsChange = () => {
+      setAdvancedMetrics(loadAdvancedMetrics());
+    };
+    window.addEventListener("podium-settings-changed", handleSettingsChange);
+    return () => window.removeEventListener("podium-settings-changed", handleSettingsChange);
+  }, []);
+
+  useEffect(() => {
+    if (!advancedMetrics && (activeTab === "tokens" || activeTab === "cost")) {
+      setActiveTab("productivity");
+    }
+  }, [advancedMetrics, activeTab]);
 
   function handleExport() {
     if (!data) return;
@@ -896,37 +912,43 @@ export function Analytics() {
           color="text-emerald-700 dark:text-emerald-400"
           loading={!data}
         />
-        <StatPill
-          label={t("totalTokens")}
-          value={data ? fmt(totalTokens) : ""}
-          raw={data ? totalTokens.toLocaleString() : undefined}
-          sub={data ? `${cacheHitPct}${t("cacheHitRate")}` : undefined}
-          icon={Cpu}
-          color="text-indigo-700 dark:text-indigo-400"
-          loading={!data}
-        />
-        <StatPill
-          label={t("totalCost")}
-          value={costData ? fmtCost(costData.total_cost) : ""}
-          raw={costData ? fmtCostFull(costData.total_cost) : undefined}
-          sub={
-            costData
-              ? `${costData.breakdown.length} ${t("common:cost.model", { count: costData.breakdown.length })}`
-              : undefined
-          }
-          icon={DollarSign}
-          color="text-emerald-700 dark:text-emerald-400"
-          loading={!costData}
-        />
-        <StatPill
-          label={t("totalEvents")}
-          value={data ? fmt(data.overview.total_events) : ""}
-          raw={data ? data.overview.total_events.toLocaleString() : undefined}
-          sub={data ? `~${data.avg_events_per_session}${t("perSession")}` : undefined}
-          icon={Zap}
-          color="text-yellow-400"
-          loading={!data}
-        />
+        {advancedMetrics && (
+          <StatPill
+            label={t("totalTokens")}
+            value={data ? fmt(totalTokens) : ""}
+            raw={data ? totalTokens.toLocaleString() : undefined}
+            sub={data ? `${cacheHitPct}${t("cacheHitRate")}` : undefined}
+            icon={Cpu}
+            color="text-indigo-700 dark:text-indigo-400"
+            loading={!data}
+          />
+        )}
+        {advancedMetrics && (
+          <StatPill
+            label={t("totalCost")}
+            value={costData ? fmtCost(costData.total_cost) : ""}
+            raw={costData ? fmtCostFull(costData.total_cost) : undefined}
+            sub={
+              costData
+                ? `${costData.breakdown.length} ${t("common:cost.model", { count: costData.breakdown.length })}`
+                : undefined
+            }
+            icon={DollarSign}
+            color="text-emerald-700 dark:text-emerald-400"
+            loading={!costData}
+          />
+        )}
+        {advancedMetrics && (
+          <StatPill
+            label={t("totalEvents")}
+            value={data ? fmt(data.overview.total_events) : ""}
+            raw={data ? data.overview.total_events.toLocaleString() : undefined}
+            sub={data ? `~${data.avg_events_per_session}${t("perSession")}` : undefined}
+            icon={Zap}
+            color="text-yellow-400"
+            loading={!data}
+          />
+        )}
       </div>
 
       {/* Activity heatmap + 30-day sparkline */}
@@ -980,7 +1002,7 @@ export function Analytics() {
               { key: "productivity" as const, label: t("tabs.productivityAnalytics") },
               { key: "workflow" as const, label: t("tabs.workflowIntelligence") },
             ] as const
-          ).map(({ key, label }) => (
+          ).filter(({ key }) => advancedMetrics || (key !== "cost" && key !== "tokens")).map(({ key, label }) => (
             <button
               key={key}
               onClick={() => setActiveTab(key)}
