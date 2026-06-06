@@ -6,6 +6,21 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DIST_DIR = path.join(__dirname, 'dashboard', 'client', 'dist');
+
+const MIME = {
+  '.html': 'text/html; charset=utf-8',
+  '.js':   'application/javascript',
+  '.css':  'text/css',
+  '.svg':  'image/svg+xml',
+  '.json': 'application/json',
+  '.ico':  'image/x-icon',
+  '.png':  'image/png',
+  '.woff2':'font/woff2',
+  '.woff': 'font/woff',
+  '.map':  'application/json',
+};
+
 const START_TIME = Date.now();
 const POLL_INTERVAL_MS = 500;
 const HEARTBEAT_INTERVAL_MS = 15000;
@@ -206,28 +221,34 @@ function sendJson(res, statusCode, payload) {
   res.end(body);
 }
 
-async function handleIndex(res) {
-  const indexPath = path.join(__dirname, 'index.html');
+async function serveStatic(res, urlPath) {
+  const relative = urlPath === '/' || urlPath === '/index.html' ? 'index.html' : urlPath.slice(1);
+  const filePath = path.join(DIST_DIR, relative);
+  if (!filePath.startsWith(DIST_DIR + path.sep) && filePath !== DIST_DIR) {
+    res.writeHead(400, { 'Content-Type': 'text/plain' });
+    res.end('Bad Request');
+    return;
+  }
   try {
-    const html = await fsp.readFile(indexPath, 'utf8');
-    res.writeHead(200, {
-      ...CORS_HEADERS,
-      'Content-Type': 'text/html; charset=utf-8',
-    });
-    res.end(html);
-  } catch {
-    res.writeHead(500, {
-      ...CORS_HEADERS,
-      'Content-Type': 'text/html; charset=utf-8',
-    });
-    res.end(
-      `<!doctype html><html><body style="background:#0d1117;color:#e6edf3;font-family:system-ui;padding:2rem">
-        <h1>Podium</h1>
-        <p style="color:#f85149">Could not load <code>index.html</code>.</p>
-        <p style="color:#7d8590">Expected at: <code>${indexPath}</code></p>
-        <p style="color:#7d8590">The server is running. The dashboard UI file is missing.</p>
-      </body></html>`
-    );
+    const data = await fsp.readFile(filePath);
+    const ext = path.extname(filePath);
+    const contentType = MIME[ext] ?? 'application/octet-stream';
+    res.writeHead(200, { ...CORS_HEADERS, 'Content-Type': contentType });
+    res.end(data);
+  } catch (err) {
+    if (err.code === 'ENOENT') {
+      try {
+        const html = await fsp.readFile(path.join(DIST_DIR, 'index.html'));
+        res.writeHead(200, { ...CORS_HEADERS, 'Content-Type': 'text/html; charset=utf-8' });
+        res.end(html);
+      } catch {
+        res.writeHead(500, { 'Content-Type': 'text/plain' });
+        res.end('Internal Server Error');
+      }
+    } else {
+      res.writeHead(500, { 'Content-Type': 'text/plain' });
+      res.end('Internal Server Error');
+    }
   }
 }
 
@@ -371,11 +392,6 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    if (pathname === '/' || pathname === '/index.html') {
-      await handleIndex(res);
-      return;
-    }
-
     if (pathname === '/health') {
       sendJson(res, 200, {
         status: 'ok',
@@ -407,7 +423,7 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    sendJson(res, 404, { error: 'not found' });
+    await serveStatic(res, pathname);
   } catch (err) {
     console.error('Request handler error:', err.message);
     if (!res.headersSent) {
