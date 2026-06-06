@@ -307,20 +307,18 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 m-2 rounded-3xl bg-surface-1 flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
+      className={`fixed left-0 top-0 bottom-0 m-2 rounded-2xl bg-surface-1 border border-white/[0.06] flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
         collapsed ? "w-[4.25rem]" : "w-60"
       }`}
-      style={{ boxShadow: "var(--elevated-shadow)" }}
     >
       {/* Brand */}
       <div className="px-3 py-4 flex-shrink-0">
         <div
-          className={`flex items-center rounded-2xl p-2 ${collapsed ? "justify-center" : "gap-3 px-3"}`}
-          style={{ boxShadow: "var(--card-shadow)" }}
+          className={`flex items-center rounded-xl p-2 ${collapsed ? "justify-center" : "gap-3 px-3"}`}
         >
           <div
-            className="w-8 h-8 rounded-xl bg-accent/20 flex items-center justify-center flex-shrink-0"
-            style={{ boxShadow: "var(--inset-shadow)" }}
+            className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0"
+            style={{ boxShadow: "0 0 12px -2px var(--accent, #d4a843)" }}
           >
             <span className="text-base leading-none text-accent" aria-hidden>
               ◆
@@ -328,7 +326,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-fg-base truncate">Podium</h1>
+              <h1 className="text-sm font-bold text-fg-base truncate tracking-tight">Podium</h1>
               <p className="text-[11px] text-accent font-semibold">{"{wpmedia}"}</p>
             </div>
           )}
@@ -340,7 +338,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           Chevron buttons appear at the edges when content is clipped, so the
           user knows there's more to reach without inspecting the scrollbar. */}
       <div className="flex-1 min-h-0 relative flex">
-        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1">
+        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-0.5">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
             return (
               <NavLink
@@ -349,17 +347,28 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
                 end={to === "/"}
                 title={collapsed ? label : undefined}
                 className={({ isActive }) =>
-                  `neu-nav group flex items-center gap-3 rounded-xl text-sm font-medium ${
+                  `group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
                   } ${
                     isActive
-                      ? "is-active bg-accent/15 text-accent font-semibold"
-                      : "text-fg-muted hover:text-fg-base bg-surface-2"
+                      ? "text-accent font-semibold bg-accent/10"
+                      : "text-fg-muted hover:text-fg-base hover:bg-white/[0.04]"
                   }`
                 }
               >
-                <Icon className="w-4 h-4 flex-shrink-0" />
-                {!collapsed && <span>{label}</span>}
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <span
+                        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-accent"
+                        style={{ boxShadow: "0 0 8px 0 var(--accent, #d4a843)" }}
+                        aria-hidden
+                      />
+                    )}
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {!collapsed && <span>{label}</span>}
+                  </>
+                )}
               </NavLink>
             );
           })}
@@ -370,7 +379,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
             onClick={() => scrollNavBy(-160)}
             aria-label="Scroll navigation up"
             title="Scroll navigation up"
-            className="neu-btn absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-surface-2 text-fg-muted hover:text-fg-base backdrop-blur-sm animate-fade-in"
+            className="absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-lg bg-surface-2 text-fg-muted hover:text-accent transition-colors duration-150 backdrop-blur-sm animate-fade-in"
           >
             <ChevronUp className="w-3.5 h-3.5" aria-hidden />
           </button>
@@ -381,7 +390,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
             onClick={() => scrollNavBy(160)}
             aria-label="Scroll navigation down"
             title="Scroll navigation down"
-            className="neu-btn absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-xl bg-surface-2 text-fg-muted hover:text-fg-base backdrop-blur-sm animate-fade-in"
+            className="absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-lg bg-surface-2 text-fg-muted hover:text-accent transition-colors duration-150 backdrop-blur-sm animate-fade-in"
           >
             <ChevronDown className="w-3.5 h-3.5" aria-hidden />
           </button>
@@ -389,14 +398,14 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Collapse toggle */}
-      <div className="px-2 py-2 flex-shrink-0 space-y-2">
+      <div className="px-2 py-2 flex-shrink-0 space-y-1">
         <ThemeToggle collapsed={collapsed} />
         <button
           onClick={onToggle}
-          className={`neu-btn w-full h-10 rounded-xl bg-surface-2 ${
+          className={`w-full h-10 rounded-lg text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150 ${
             collapsed
-              ? "flex items-center justify-center text-fg-muted hover:text-fg-base"
-              : "flex items-center gap-2.5 px-3 text-fg-muted hover:text-fg-base"
+              ? "flex items-center justify-center"
+              : "flex items-center gap-2.5 px-3"
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -414,14 +423,14 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
 
       {/* Footer */}
       <div
-        className={`px-3 pt-3 pb-4 space-y-2.5 flex-shrink-0 ${collapsed ? "px-2" : ""}`}
+        className={`px-3 pt-3 pb-4 space-y-1.5 flex-shrink-0 border-t border-white/[0.06] ${collapsed ? "px-2" : ""}`}
       >
         <button
           type="button"
           onClick={() => setStatusModalOpen(true)}
           aria-label="Connection details"
           title="Connection details"
-          className={`neu-btn rounded-xl bg-surface-2 text-left cursor-pointer ${
+          className={`rounded-lg text-left cursor-pointer hover:bg-white/[0.04] transition-colors duration-150 ${
             collapsed
               ? "w-9 h-9 mx-auto flex items-center justify-center p-0"
               : "block w-full px-2.5 py-2"
@@ -432,7 +441,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           >
             <span
               className={`inline-flex items-center gap-2 ${
-                wsConnected ? "text-emerald-600 dark:text-emerald-400" : "text-fg-dim"
+                wsConnected ? "text-emerald-400" : "text-fg-dim"
               }`}
             >
               {wsConnected ? (
@@ -448,46 +457,36 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           </div>
         </button>
         {!collapsed && (
-          <div className="space-y-1.5">
+          <div className="space-y-1">
             <a
               href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
-              className="neu-btn group flex items-center gap-2.5 rounded-xl bg-surface-2 px-2.5 py-2 text-xs text-fg-muted hover:text-fg-base"
+              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
               title="GitHub"
             >
-              <span
-                className="w-6 h-6 rounded-lg bg-surface-2 flex items-center justify-center"
-                style={{ boxShadow: "var(--inset-shadow)" }}
-              >
-                <Github className="w-3.5 h-3.5 flex-shrink-0" />
-              </span>
+              <Github className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="font-medium">GitHub</span>
             </a>
             <a
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="neu-btn group flex items-center gap-2.5 rounded-xl bg-surface-2 px-2.5 py-2 text-xs text-fg-muted hover:text-fg-base"
+              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
               title={websiteLabel}
             >
-              <span
-                className="w-6 h-6 rounded-lg bg-surface-2 flex items-center justify-center"
-                style={{ boxShadow: "var(--inset-shadow)" }}
-              >
-                <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-              </span>
+              <Globe className="w-3.5 h-3.5 flex-shrink-0" />
               <span className="font-medium truncate">{websiteLabel}</span>
             </a>
           </div>
         )}
         {collapsed && (
-          <div className="flex flex-col items-center gap-2 pt-0.5">
+          <div className="flex flex-col items-center gap-1 pt-0.5">
             <a
               href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
-              className="neu-btn w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center text-fg-muted hover:text-fg-base"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
               title="GitHub"
               aria-label="GitHub"
             >
@@ -497,7 +496,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="neu-btn w-9 h-9 rounded-xl bg-surface-2 flex items-center justify-center text-fg-muted hover:text-fg-base"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
               title={websiteLabel}
               aria-label={websiteLabel}
             >
@@ -615,7 +614,7 @@ function ConnectionStatusModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="connection-status-title"
@@ -623,19 +622,15 @@ function ConnectionStatusModal({
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div
-        className="w-full max-w-md card rounded-3xl animate-slide-up overflow-hidden flex flex-col max-h-[85vh]"
-        style={{ boxShadow: "var(--elevated-shadow)" }}
-      >
-        <div className="flex items-start justify-between gap-3 px-5 py-4">
+      <div className="w-full max-w-md bg-surface-1 border border-white/[0.08] rounded-2xl animate-slide-up overflow-hidden flex flex-col max-h-[85vh] shadow-2xl shadow-black/40">
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-white/[0.06]">
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
                 wsConnected
-                  ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                  : "bg-surface-2 text-fg-muted"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-white/[0.04] text-fg-muted"
               }`}
-              style={{ boxShadow: "var(--inset-shadow)" }}
             >
               {wsConnected ? (
                 <Wifi className="w-4 h-4" aria-hidden />
@@ -652,7 +647,7 @@ function ConnectionStatusModal({
               </h2>
               <p
                 className={`text-[11px] font-medium inline-flex items-center gap-1.5 leading-tight ${
-                  wsConnected ? "text-emerald-600 dark:text-emerald-400" : "text-fg-dim"
+                  wsConnected ? "text-emerald-400" : "text-fg-dim"
                 }`}
               >
                 {wsConnected && (
@@ -669,7 +664,7 @@ function ConnectionStatusModal({
             type="button"
             onClick={close}
             aria-label="Close"
-            className="neu-btn p-2 -m-1 rounded-xl bg-surface-2 text-fg-muted hover:text-fg-base flex-shrink-0"
+            className="p-2 -m-1 rounded-lg text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150 flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -732,8 +727,7 @@ function ConnectionStatusModal({
                 {recentEvents.map((evt, i) => (
                   <li
                     key={`${evt.at}-${i}`}
-                    className="flex items-center justify-between gap-3 text-[11px] font-mono px-2.5 py-1.5 rounded-lg bg-surface-2"
-                    style={{ boxShadow: "var(--inset-shadow)" }}
+                    className="flex items-center justify-between gap-3 text-[11px] font-mono px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]"
                   >
                     <span className="text-fg-base truncate">{evt.type}</span>
                     <span className="text-fg-dim flex-shrink-0">{formatRelative(evt.at)}</span>
@@ -744,12 +738,12 @@ function ConnectionStatusModal({
           </Section>
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-5 py-3">
+        <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-white/[0.06]">
           <span className="text-[10px] text-fg-dim">Stats persist across reloads</span>
           <button
             type="button"
             onClick={onResetStats}
-            className="neu-btn text-[11px] font-medium text-fg-muted hover:text-fg-base bg-surface-2 px-3 py-1.5 rounded-xl"
+            className="text-[11px] font-medium text-fg-muted hover:text-accent bg-white/[0.04] hover:bg-white/[0.06] px-3 py-1.5 rounded-lg transition-colors duration-150"
           >
             Reset
           </button>
@@ -772,10 +766,7 @@ function Section({
   return (
     <section>
       <div className="flex items-center gap-2 pb-2 mb-3">
-        <span
-          className="w-5 h-5 rounded-lg bg-accent/15 flex items-center justify-center flex-shrink-0"
-          style={{ boxShadow: "var(--inset-shadow)" }}
-        >
+        <span className="w-5 h-5 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
           <Icon className="w-3 h-3 text-accent" aria-hidden />
         </span>
         <h3 className="text-[13px] font-semibold text-fg-base tracking-tight">{title}</h3>
@@ -787,10 +778,7 @@ function Section({
 
 function KpiTile({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
-    <div
-      className="rounded-xl bg-surface-2 px-2.5 py-2"
-      style={{ boxShadow: "var(--card-shadow)" }}
-    >
+    <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] px-2.5 py-2">
       <div className="text-[9px] font-semibold uppercase tracking-wider text-fg-dim truncate">
         {label}
       </div>
@@ -836,10 +824,7 @@ function TypeBar({
           {count} · {sharePct}%
         </span>
       </div>
-      <div
-        className="h-1.5 rounded-full bg-surface-2 overflow-hidden"
-        style={{ boxShadow: "var(--inset-shadow)" }}
-      >
+      <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
         <div
           className="h-full bg-accent rounded-full transition-[width] duration-300"
           style={{ width: `${widthPct}%` }}
@@ -872,10 +857,7 @@ function Sparkline({
   const stroke = connected ? "#34d399" : "#6b7280";
 
   return (
-    <div
-      className="rounded-xl bg-surface-2 p-2.5"
-      style={{ boxShadow: "var(--inset-shadow)" }}
-    >
+    <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-2.5">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-14" aria-hidden>
         <defs>
           <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">

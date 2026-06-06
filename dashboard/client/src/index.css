@@ -1,7 +1,8 @@
 /**
  * @file index.css
- * @description Neumorphism 2.0 design system — soft, embossed aesthetic.
- *   Tactile feel with inset/outset shadows. Mid-tone gray foundation.
+ * @description Modern minimal design system — clean, flat, dark-navy first.
+ *   Inspired by Vercel/Linear. Soft single-tone shadows, thin borders,
+ *   strategic WP Media gold accents. No tactile embossing.
  * @author WP Media
  */
 
@@ -17,80 +18,60 @@
 
 /* ── Light theme (default) ─────────────────────────────── */
 :root {
-  /* Neumorphism: warm ivory base, soft grays */
+  /* Clean light: near-white page, crisp card lift */
   --surface-0: 245 245 248;    /* page bg */
-  --surface-1: 252 252 255;    /* sidebar */
-  --surface-2: 250 250 253;    /* cards */
-  --surface-3: 240 240 244;    /* hover/secondary */
-  --surface-4: 230 230 236;    /* active */
-  --surface-5: 220 220 228;    /* pressed */
+  --surface-1: 255 255 255;    /* sidebar */
+  --surface-2: 255 255 255;    /* cards */
+  --surface-3: 244 244 248;    /* hover/secondary */
+  --surface-4: 236 236 242;    /* active */
+  --surface-5: 226 226 234;    /* pressed */
 
-  --border: 200 200 210;
-  --border-light: 220 220 230;
+  --border: 226 226 234;
+  --border-light: 236 236 242;
 
-  --text-primary: 20 20 28;
-  --text-muted: 100 100 120;
-  --text-dim: 140 140 160;
+  --text-primary: 18 20 28;
+  --text-muted: 96 100 116;
+  --text-dim: 142 146 162;
 
   --accent: 254 210 58;
   --accent-hover: 224 187 53;
   --accent-muted: rgba(254, 210, 58, 0.12);
 
-  /* Neumorphism: soft dual-tone shadow (dark shadow + light highlight) */
-  --card-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.08),
-    0 -2px 4px rgba(255, 255, 255, 0.6),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.05);
+  /* Soft single-tone shadows */
+  --card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  --elevated-shadow: 0 8px 24px rgba(0, 0, 0, 0.10);
 
-  /* Elevated: stronger shadow */
-  --elevated-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.12),
-    0 -2px 6px rgba(255, 255, 255, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-
-  /* Pressed/inset state */
-  --inset-shadow:
-    inset 0 4px 8px rgba(0, 0, 0, 0.08),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.6);
+  /* Faint gold glow for interactive hover */
+  --gold-glow: 0 0 0 1px rgba(254, 210, 58, 0.30), 0 4px 16px rgba(254, 210, 58, 0.15);
 }
 
-/* ── Dark theme ────────────────────────────────────────── */
+/* ── Dark theme — deep navy foundation ─────────────────── */
 .dark {
-  /* Neumorphism dark: charcoal base, soft shadows work via color not light */
-  --surface-0: 18 18 24;
-  --surface-1: 24 24 32;
-  --surface-2: 32 32 44;
-  --surface-3: 40 40 56;
-  --surface-4: 50 50 68;
-  --surface-5: 60 60 80;
+  /* Near-black navy base, gold accents pop hard */
+  --surface-0: 10 12 20;       /* page bg — #0A0C14 */
+  --surface-1: 13 16 26;       /* sidebar */
+  --surface-2: 17 20 32;       /* cards — #111420 */
+  --surface-3: 24 28 42;       /* hover/secondary */
+  --surface-4: 32 37 54;       /* active */
+  --surface-5: 42 48 68;       /* pressed */
 
-  --border: 80 80 110;
-  --border-light: 100 100 140;
+  --border: 34 39 56;
+  --border-light: 48 54 74;
 
-  --text-primary: 245 245 255;
-  --text-muted: 160 160 180;
-  --text-dim: 100 110 140;
+  --text-primary: 240 242 250;
+  --text-muted: 150 156 178;
+  --text-dim: 96 104 128;
 
   --accent: 254 210 58;
   --accent-hover: 255 223 90;
   --accent-muted: rgba(254, 210, 58, 0.12);
 
-  /* Dark neumorphism: darker shadow + lighter highlight */
-  --card-shadow:
-    0 4px 12px rgba(0, 0, 0, 0.4),
-    0 -2px 4px rgba(255, 255, 255, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12),
-    inset 0 -1px 2px rgba(0, 0, 0, 0.3);
+  /* Soft single-tone shadows — subtle depth, no embossing */
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.30);
+  --elevated-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
 
-  --elevated-shadow:
-    0 8px 24px rgba(0, 0, 0, 0.5),
-    0 -2px 6px rgba(255, 255, 255, 0.1),
-    inset 0 1px 0 rgba(255, 255, 255, 0.15);
-
-  --inset-shadow:
-    inset 0 4px 8px rgba(0, 0, 0, 0.3),
-    inset 0 -2px 4px rgba(255, 255, 255, 0.08);
+  /* Gold glow for interactive hover */
+  --gold-glow: 0 0 0 1px rgba(254, 210, 58, 0.35), 0 4px 20px rgba(254, 210, 58, 0.18);
 }
 
 body {
@@ -99,21 +80,22 @@ body {
   background-color: rgb(var(--surface-0));
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
 }
 
 @layer base {
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--border)) transparent;
+    scrollbar-color: rgb(var(--border-light)) transparent;
   }
 
   *::-webkit-scrollbar { width: 6px; height: 6px; }
   *::-webkit-scrollbar-track { background: transparent; }
   *::-webkit-scrollbar-thumb {
-    background: rgb(var(--border));
+    background: rgb(var(--border-light));
     border-radius: 3px;
   }
-  *::-webkit-scrollbar-thumb:hover { background: rgb(var(--border-light)); }
+  *::-webkit-scrollbar-thumb:hover { background: rgb(var(--text-dim)); }
 
   ::selection {
     background: rgba(254, 210, 58, 0.25);
@@ -134,53 +116,49 @@ body {
 }
 
 @layer components {
-  /* ── Card — the foundational neumorphic surface ── */
+  /* ── Card — clean flat surface with thin border + soft shadow ── */
   .card {
-    @apply bg-surface-2 rounded-2xl;
+    @apply bg-surface-2 rounded-xl border border-border;
     box-shadow: var(--card-shadow);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
   }
 
-  /* Accent variant */
+  /* Premium accent variant — faint gold border */
   .card-accent {
     @apply card;
-  }
-  :root .card-accent {
-    border-top: 2px solid rgb(var(--accent) / 0.6);
+    border-color: rgb(var(--accent) / 0.35);
   }
 
-  /* Hoverable card — lifts and softens shadow */
+  /* Hoverable card — subtle lift + gold edge */
   .card-hover {
     @apply card cursor-pointer;
   }
   .card-hover:hover {
     box-shadow: var(--elevated-shadow);
+    border-color: rgb(var(--accent) / 0.30);
     transform: translateY(-2px);
   }
   .card-hover:active {
-    box-shadow: var(--inset-shadow);
     transform: translateY(0);
-  }
-
-  /* ── Button — neumorphic raised/pressed states ── */
-  .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-gray-900 text-sm font-semibold rounded-lg transition-all duration-150;
     box-shadow: var(--card-shadow);
   }
+
+  /* ── Button — clean flat, gold on dark, subtle glow on hover ── */
+  .btn-primary {
+    @apply inline-flex items-center gap-2 px-4 py-2 bg-accent text-gray-900 text-sm font-semibold rounded-lg transition-all duration-150;
+  }
   .btn-primary:hover {
-    box-shadow: var(--elevated-shadow);
+    background-color: rgb(var(--accent-hover));
+    box-shadow: var(--gold-glow);
     transform: translateY(-1px);
   }
   .btn-primary:active {
-    box-shadow: var(--inset-shadow);
     transform: translateY(0);
+    box-shadow: none;
   }
 
   .btn-ghost {
     @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-3 rounded-lg transition-all duration-150;
-  }
-  .btn-ghost:active {
-    box-shadow: var(--inset-shadow);
   }
 
   .badge {
@@ -196,37 +174,35 @@ body {
     @apply text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-600;
   }
 
-  /* ── Sidebar neumorphic primitives ──
-     Raised by default, shadow lifts on hover, inverts (inset) on press.
-     The `.is-active` modifier holds the pressed state for the current route. */
+  /* ── Sidebar nav — flat, gold-tinted active state ──
+     `.is-active` holds the highlighted state for the current route. */
   .neu-nav {
-    box-shadow: var(--card-shadow);
-    transition: box-shadow 0.18s ease, color 0.15s ease, background-color 0.15s ease,
-      transform 0.18s ease;
+    border: 1px solid transparent;
+    transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
   }
   .neu-nav:hover {
-    box-shadow: var(--elevated-shadow);
-  }
-  .neu-nav:active {
-    box-shadow: var(--inset-shadow);
+    background-color: rgb(var(--surface-3));
   }
   .neu-nav.is-active {
-    box-shadow: var(--inset-shadow);
+    background-color: rgb(var(--accent) / 0.10);
+    border-color: rgb(var(--accent) / 0.30);
+    color: rgb(var(--accent));
   }
 
-  /* Tactile button — raised, lifts on hover, presses in on click. */
+  /* Flat button — subtle lift + gold glow on hover. */
   .neu-btn {
-    box-shadow: var(--card-shadow);
+    @apply bg-surface-2 border border-border rounded-lg;
     transition: box-shadow 0.18s ease, color 0.15s ease, background-color 0.15s ease,
-      transform 0.18s ease;
+      border-color 0.15s ease, transform 0.18s ease;
   }
   .neu-btn:hover {
-    box-shadow: var(--elevated-shadow);
+    border-color: rgb(var(--accent) / 0.30);
+    box-shadow: var(--gold-glow);
     transform: translateY(-1px);
   }
   .neu-btn:active {
-    box-shadow: var(--inset-shadow);
     transform: translateY(0);
+    box-shadow: none;
   }
 }
 

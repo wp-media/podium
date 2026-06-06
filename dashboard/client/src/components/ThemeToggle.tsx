@@ -57,8 +57,7 @@ export function ThemeToggle({ collapsed }: ThemeToggleProps) {
   return (
     <button
       onClick={toggle}
-      style={{ boxShadow: "var(--card-shadow)" }}
-      className={`w-full h-10 rounded-lg bg-surface-2 transition-all duration-150 hover:-translate-y-0.5 active:translate-y-0 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 ${
+      className={`w-full h-10 rounded-lg bg-white/[0.04] border border-white/[0.06] transition-colors duration-150 text-gray-600 hover:text-accent dark:text-gray-300 dark:hover:text-accent hover:border-accent/30 ${
         collapsed
           ? "flex items-center justify-center"
           : "flex items-center gap-2.5 px-3"
