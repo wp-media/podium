@@ -1,176 +1,183 @@
 /**
  * @file index.css
- * @description Global styles and Tailwind CSS configuration for the application.
- *   Glassmorphism design system: frosted glass surfaces over fixed, blurred
- *   gradient-orb backgrounds. Works in both light ("warm frosted") and dark
- *   ("deep navy space") themes.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @description Podium design system — premium dark-first dashboard.
+ *   Deep navy foundation · warm gold brand accent · crisp visual hierarchy.
+ *
+ *   Token strategy: `:root` = light tokens (default). `.dark` overrides them.
+ *   That way `bg-surface-*` and `text-fg-*` tokens are always correct in both
+ *   themes, and Tailwind's `dark:` utilities layer on top for one-off overrides.
  */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Theme tokens ──────────────────────────────────────────
- * Surface/border/text values are space-separated RGB *channels* (not hex)
- * so Tailwind's `rgb(var(--x) / <alpha-value>)` color definitions can apply
- * opacity modifiers (e.g. bg-accent/15, border-border/40). See tailwind.config.js.
- *
- * Glass tokens (--glass-*) are ready-made rgba / shadow values consumed
- * directly by the .card / .glass-panel component classes below.
- * ──────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────────────────
+   DESIGN TOKENS  —  RGB channels so Tailwind opacity modifiers work:
+                     bg-accent/15, border-border/40, text-fg-muted/80 …
+   ───────────────────────────────────────────────────────────────────────── */
 
-/* ── Light theme (default) — warm frosted glass ────────── */
+/* ── Light theme (default) ── */
 :root {
-  /* Surfaces: warm ivory "paper" floor. Cards now lean on glass tokens,
-   * but these stay defined for opaque fallbacks and non-glass elements. */
-  --surface-0: 238 235 230;    /* page bg — warm linen */
-  --surface-1: 255 255 255;    /* sidebar fallback */
-  --surface-2: 251 250 248;    /* inputs / secondary */
-  --surface-3: 255 255 255;    /* cards fallback */
-  --surface-4: 246 244 241;    /* hover */
-  --surface-5: 238 236 232;    /* pressed */
+  /* Surface stack — clean whites to very light blues */
+  --surface-0: 246 247 250;   /* body background */
+  --surface-1: 255 255 255;   /* sidebar, panels */
+  --surface-2: 252 253 255;   /* card background */
+  --surface-3: 243 245 250;   /* card hover, secondary panels */
+  --surface-4: 235 238 247;   /* active / selected */
+  --surface-5: 224 229 242;   /* pressed */
 
-  --border: 220 216 210;
-  --border-light: 232 229 224;
+  /* Border — dark ink at very low opacity */
+  --border:       14 14 30;
+  --border-light: 14 14 30;
 
-  --text-primary: 14 14 14;    /* near-black — max readability */
-  --text-muted:   72  72  72;  /* dark gray — always readable */
-  --text-dim:    120 120 120;  /* medium gray — still AA-compliant */
+  /* Typography */
+  --text-primary:  10  12  22;
+  --text-muted:    72  80 108;
+  --text-dim:     130 142 168;
 
-  --accent: 254 210 58;
-  --accent-hover: 224 187 53;
-  --accent-muted: rgba(254,210,58,0.15);
+  /* Brand — WP Media gold */
+  --accent:       254 210  58;
+  --accent-hover: 224 187  53;
 
-  /* ── Glass tokens (light) ── white-tinted frost on a warm floor */
-  --glass-bg: rgba(255, 255, 255, 0.62);
-  --glass-bg-strong: rgba(255, 255, 255, 0.78);
-  --glass-border: rgba(255, 255, 255, 0.75);
-  --glass-border-soft: rgba(255, 255, 255, 0.55);
-  /* Drop shadow + crisp top inner-highlight that reads as a glass bevel. */
-  --glass-shadow:
-    0 1px 2px 0 rgb(60 50 30 / 0.05),
-    0 8px 24px -6px rgb(60 50 30 / 0.10),
-    0 24px 48px -12px rgb(60 50 30 / 0.08),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.85);
-  --glass-shadow-strong:
-    0 2px 4px 0 rgb(60 50 30 / 0.06),
-    0 12px 32px -8px rgb(60 50 30 / 0.14),
-    0 40px 64px -16px rgb(60 50 30 / 0.10),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.9);
+  /* Elevation — light uses crisp shadows */
+  --card-shadow:
+    0 0 0 1px rgb(14 14 30 / 0.07),
+    0 1px 3px   rgb(14 14 30 / 0.06),
+    0 6px 20px  rgb(14 14 30 / 0.05);
 
-  /* Legacy aliases (kept so any stray references still resolve). */
-  --card-shadow: var(--glass-shadow);
-  --elevated-shadow: var(--glass-shadow-strong);
+  --elevated-shadow:
+    0 0 0 1px rgb(14 14 30 / 0.09),
+    0 2px 8px   rgb(14 14 30 / 0.08),
+    0 16px 40px rgb(14 14 30 / 0.08);
+
+  --accent-glow:       0 0 0 1px rgb(254 210 58 / 0.35), 0 2px 16px rgb(254 210 58 / 0.20);
+  --accent-glow-hover: 0 0 0 1px rgb(254 210 58 / 0.50), 0 4px 24px rgb(254 210 58 / 0.30);
 }
 
-/* ── Dark theme — deep navy space ──────────────────────── */
+/* ── Dark theme — overrides every token ── */
 .dark {
-  --surface-0: 9 12 20;
-  --surface-1: 15 19 28;
-  --surface-2: 21 26 38;
-  --surface-3: 28 36 51;
-  --surface-4: 36 48 72;
-  --surface-5: 46 58 80;
-  --border: 46 50 67;
-  --border-light: 58 77 104;
-  --text-primary: 240 244 252;
-  --text-muted: 165 172 188;
-  --text-dim: 110 124 150;
-  --accent: 254 210 58;
-  --accent-hover: 224 187 53;
-  --accent-muted: rgba(254,210,58,0.15);
+  /* Surface stack — near-black navy → deep blue-grey */
+  --surface-0:  7  10  16;   /* body — pitch-dark navy */
+  --surface-1: 11  15  23;   /* sidebar */
+  --surface-2: 16  21  33;   /* card */
+  --surface-3: 21  28  44;   /* card hover */
+  --surface-4: 28  37  58;   /* active */
+  --surface-5: 36  48  72;   /* pressed */
 
-  /* ── Glass tokens (dark) ── visible frosted film over navy + orbs */
-  --glass-bg: rgba(255, 255, 255, 0.06);
-  --glass-bg-strong: rgba(255, 255, 255, 0.10);
-  --glass-border: rgba(255, 255, 255, 0.13);
-  --glass-border-soft: rgba(255, 255, 255, 0.08);
-  /* Depth shadow + soft top inner-highlight to fake a lit glass edge. */
-  --glass-shadow:
-    0 2px 8px -2px rgb(0 0 0 / 0.5),
-    0 12px 32px -8px rgb(0 0 0 / 0.55),
-    0 32px 64px -16px rgb(0 0 0 / 0.45),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.07);
-  --glass-shadow-strong:
-    0 4px 12px -2px rgb(0 0 0 / 0.55),
-    0 20px 48px -12px rgb(0 0 0 / 0.6),
-    0 48px 80px -20px rgb(0 0 0 / 0.5),
-    inset 0 1px 0 0 rgb(255 255 255 / 0.1);
+  /* Border — white at low opacity */
+  --border:       255 255 255;
+  --border-light: 255 255 255;
 
-  --card-shadow: var(--glass-shadow);
-  --elevated-shadow: var(--glass-shadow-strong);
+  --text-primary: 232 238 255;
+  --text-muted:   148 162 196;
+  --text-dim:      76  96 132;
+
+  --accent:       254 210  58;
+  --accent-hover: 255 223  90;
+
+  --card-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.06),
+    0 1px 0   rgb(255 255 255 / 0.07) inset,
+    0 4px 16px  rgb(0 0 0 / 0.50),
+    0 1px 4px   rgb(0 0 0 / 0.35);
+
+  --elevated-shadow:
+    0 0 0 1px rgb(255 255 255 / 0.08),
+    0 1px 0   rgb(255 255 255 / 0.09) inset,
+    0 8px 32px  rgb(0 0 0 / 0.60),
+    0 2px 8px   rgb(0 0 0 / 0.40);
+
+  --accent-glow:       0 0 0 1px rgb(254 210 58 / 0.25), 0 4px 20px rgb(254 210 58 / 0.22);
+  --accent-glow-hover: 0 0 0 1px rgb(254 210 58 / 0.38), 0 4px 28px rgb(254 210 58 / 0.35);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BODY + AMBIENT GRADIENT
+   ───────────────────────────────────────────────────────────────────────── */
 
 body {
-  font-family: 'Whitney HTF Medium', 'Inter', system-ui, sans-serif;
-  color: rgb(var(--text-primary));
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   background-color: rgb(var(--surface-0));
-  /* Establish a stacking context so ::before orbs sit behind content. */
+  color: rgb(var(--text-primary));
   position: relative;
-  z-index: 0;
+  min-height: 100vh;
 }
 
-/* ── Fixed gradient-orb backdrop ───────────────────────────
- * Two stacked fixed pseudo-elements:
- *   body::before  — large, sharp-ish orbs at full opacity (the actual color)
- *   body::after   — a second pass for the deepest glow center
- *
- * Key insight: do NOT apply filter:blur() to the pseudo-element — it dilutes
- * the orbs into near-invisibility. Instead, make each orb large so it is
- * naturally soft, and rely on backdrop-filter:blur() on the glass cards to
- * create the frosted effect where the orbs bleed through.
- * ──────────────────────────────────────────────────────── */
+/* Ambient brand glow — fixed, non-interactive, behind all content.
+   Light: barely-there warm tint top-right.
+   Dark:  visible gold glow from top-right + deep blue from bottom-left. */
 body::before {
   content: "";
   position: fixed;
   inset: 0;
-  z-index: -1;
+  z-index: 0;
   pointer-events: none;
-  /* Light theme — warm amber top-left, sky-blue bottom-right, pink center.
-   * Higher opacity (0.18-0.22) so they're actually visible through glass cards. */
   background:
-    radial-gradient(ellipse 55% 45% at 8% 10%,  rgb(254 210 58 / 0.22) 0%, transparent 70%),
-    radial-gradient(ellipse 50% 55% at 92% 90%, rgb(56 142 255 / 0.18) 0%, transparent 68%),
-    radial-gradient(ellipse 40% 40% at 50% 50%, rgb(236 72 153 / 0.10) 0%, transparent 65%);
+    radial-gradient(ellipse 65% 50% at 100% 0%,  rgb(254 210 58 / 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 55% at 0%  100%, rgb(59  80 200 / 0.05) 0%, transparent 60%);
 }
 
-/* Dark theme orbs — deeper, more saturated to punch through the dark bg. */
 .dark body::before {
   background:
-    radial-gradient(ellipse 55% 50% at 88% 6%,  rgb(254 210 58 / 0.18) 0%, transparent 65%),
-    radial-gradient(ellipse 60% 55% at 8%  92%, rgb(79 70 229 / 0.22) 0%, transparent 65%),
-    radial-gradient(ellipse 45% 45% at 50% 48%, rgb(147 51 234 / 0.14) 0%, transparent 60%),
-    radial-gradient(ellipse 35% 35% at 94% 88%, rgb(16 185 129 / 0.10) 0%, transparent 65%);
+    radial-gradient(ellipse 70% 55% at 100% 0%,  rgb(254 210 58 / 0.13) 0%, transparent 58%),
+    radial-gradient(ellipse 55% 55% at 0%  100%, rgb(46  64 190 / 0.12) 0%, transparent 60%);
 }
 
+/* Subtle noise grain — adds luxury texture depth (barely perceptible) */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.018;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 256px 256px;
+}
+
+/* All interactive content above pseudo-elements */
+#root { position: relative; z-index: 1; }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   BASE LAYER
+   ───────────────────────────────────────────────────────────────────────── */
+
 @layer base {
+  /* Slim, tasteful scrollbars */
   * {
     scrollbar-width: thin;
-    scrollbar-color: rgb(var(--border)) transparent;
+    scrollbar-color: rgb(var(--border) / 0.14) transparent;
   }
-
-  *::-webkit-scrollbar { width: 6px; height: 6px; }
+  *::-webkit-scrollbar { width: 5px; height: 5px; }
   *::-webkit-scrollbar-track { background: transparent; }
   *::-webkit-scrollbar-thumb {
-    background: rgb(var(--border));
-    border-radius: 3px;
+    background: rgb(var(--border) / 0.14);
+    border-radius: 99px;
   }
-  *::-webkit-scrollbar-thumb:hover { background: rgb(var(--border-light)); }
+  *::-webkit-scrollbar-thumb:hover {
+    background: rgb(var(--border) / 0.26);
+  }
 
   ::selection {
-    background: rgba(254,210,58,0.35);
+    background: rgb(254 210 58 / 0.28);
     color: rgb(var(--text-primary));
   }
 
+  /* Calendar pickers */
   ::-webkit-calendar-picker-indicator {
     cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s;
+    opacity: 0.55;
+    transition: opacity 0.15s;
   }
-  .dark ::-webkit-calendar-picker-indicator { filter: invert(1) brightness(0.8); }
+  .dark ::-webkit-calendar-picker-indicator {
+    filter: invert(1) brightness(0.65);
+  }
   ::-webkit-calendar-picker-indicator:hover { opacity: 1; }
   .time-input-custom::-webkit-calendar-picker-indicator {
     display: none;
@@ -178,91 +185,169 @@ body::before {
   }
 }
 
+/* ─────────────────────────────────────────────────────────────────────────────
+   COMPONENT LAYER
+   ───────────────────────────────────────────────────────────────────────── */
+
 @layer components {
-  /* ── Glass card — the workhorse surface ──────────────────
-   * Translucent fill + heavy backdrop blur so the fixed orbs bleed through.
-   * The inset top-highlight inside --glass-shadow gives a beveled lit edge. */
+
+  /* ── Card ──────────────────────────────────────────────────────────────── */
+  /* The foundational elevated surface. All cards share this base. */
   .card {
-    background: var(--glass-bg);
-    border: 1px solid var(--glass-border);
-    -webkit-backdrop-filter: blur(20px) saturate(150%);
-    backdrop-filter: blur(20px) saturate(150%);
-    box-shadow: var(--glass-shadow);
-    @apply rounded-xl;
+    background: rgb(var(--surface-2));
+    border: 1px solid rgb(var(--border) / 0.07);
+    border-radius: 14px;
+    box-shadow: var(--card-shadow);
+    transition: box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+  /* Dark: top edge "lit from above" — creates perceived depth without blur */
+  .dark .card {
+    border-top-color: rgb(var(--border) / 0.13);
   }
 
-  /* Stronger glass for hero / focal elements (modals, primary panels). */
-  .card-glass {
-    background: var(--glass-bg-strong);
-    border: 1px solid var(--glass-border);
-    -webkit-backdrop-filter: blur(28px) saturate(170%);
-    backdrop-filter: blur(28px) saturate(170%);
-    box-shadow: var(--glass-shadow-strong);
-    @apply rounded-2xl;
-  }
-
-  /* Sidebar / overlay glass — softer border, taller blur, no heavy shadow. */
-  .glass-panel {
-    background: var(--glass-bg-strong);
-    border: 1px solid var(--glass-border);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
-    backdrop-filter: blur(32px) saturate(180%);
-  }
-
-  /* Card with a subtle accent-tinted top edge in light mode. */
+  /* Accent variant — gold top border, used for key stat panels */
   .card-accent {
     @apply card;
-  }
-  :root .card-accent {
-    border-top: 2px solid rgb(var(--accent) / 0.6);
+    border-top: 2px solid rgb(var(--accent) / 0.65) !important;
   }
 
+  /* Hoverable card — lifts on hover */
   .card-hover {
-    @apply card transition-all duration-200;
+    @apply card;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease, border-color 0.18s ease, transform 0.18s ease;
   }
   .card-hover:hover {
-    border-color: var(--glass-border);
-    box-shadow: var(--glass-shadow-strong);
+    border-color: rgb(var(--border) / 0.15);
+    box-shadow: var(--elevated-shadow);
     transform: translateY(-1px);
   }
 
+  /* Elevated surface — modals, dropdowns */
+  .card-glass {
+    background: rgb(var(--surface-2));
+    border: 1px solid rgb(var(--border) / 0.10);
+    border-radius: 16px;
+    box-shadow: var(--elevated-shadow);
+  }
+  .dark .card-glass {
+    border-top-color: rgb(var(--border) / 0.18);
+  }
+
+  /* ── Sidebar / panel surface ────────────────────────────────────────────── */
+  .glass-panel {
+    background: rgb(var(--surface-1));
+    border-right: 1px solid rgb(var(--border) / 0.07);
+  }
+
+  /* ── Primary CTA button ─────────────────────────────────────────────────── */
   .btn-primary {
-    @apply inline-flex items-center gap-2 px-4 py-2 bg-accent hover:bg-accent-hover text-gray-900 text-sm font-semibold rounded-lg transition-all duration-150;
-    box-shadow: 0 2px 8px -1px rgb(254 210 58 / 0.35), inset 0 1px 0 0 rgb(255 255 255 / 0.4);
+    @apply inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg transition-all duration-150 select-none;
+    background: rgb(var(--accent));
+    color: rgb(10 10 10);
+    box-shadow: var(--accent-glow);
+    letter-spacing: -0.01em;
   }
   .btn-primary:hover {
-    box-shadow: 0 4px 16px -2px rgb(254 210 58 / 0.45), inset 0 1px 0 0 rgb(255 255 255 / 0.5);
+    background: rgb(var(--accent-hover));
+    box-shadow: var(--accent-glow-hover);
+    transform: translateY(-1px);
+  }
+  .btn-primary:active {
+    transform: translateY(0);
+    box-shadow: var(--accent-glow);
   }
 
+  /* ── Ghost / secondary button ───────────────────────────────────────────── */
   .btn-ghost {
-    @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 rounded-lg transition-colors duration-150;
+    @apply inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-lg transition-colors duration-150 select-none;
+    color: rgb(var(--text-muted));
   }
   .btn-ghost:hover {
-    background: var(--glass-bg-strong);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    background: rgb(var(--surface-3));
+    color: rgb(var(--text-primary));
   }
 
+  /* ── Badge ─────────────────────────────────────────────────────────────── */
   .badge {
-    @apply inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-full border whitespace-nowrap shrink-0;
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border whitespace-nowrap shrink-0;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
   }
 
+  /* ── Form input ─────────────────────────────────────────────────────────── */
   .input {
-    @apply border rounded-lg px-3 py-2 text-sm text-gray-800 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-600 focus:outline-none focus:border-accent focus:ring-2 focus:ring-accent/20 transition-colors;
-    background: var(--glass-bg);
-    border-color: var(--glass-border-soft);
-    -webkit-backdrop-filter: blur(12px);
-    backdrop-filter: blur(12px);
+    @apply border rounded-lg px-3 py-2 text-sm outline-none transition-all;
+    background: rgb(var(--surface-2));
+    border-color: rgb(var(--border) / 0.10);
+    color: rgb(var(--text-primary));
+  }
+  .input::placeholder { color: rgb(var(--text-dim)); }
+  .input:focus {
+    border-color: rgb(var(--accent) / 0.45);
+    box-shadow: 0 0 0 3px rgb(var(--accent) / 0.09);
   }
 
-  /* Section label — small uppercase heading inside cards. */
+  /* ── Section label — 10px all-caps label inside cards ───────────────────── */
   .section-label {
-    @apply text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-600;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgb(var(--text-dim));
+  }
+
+  /* ── Hero stat number ───────────────────────────────────────────────────── */
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    color: rgb(var(--text-primary));
+  }
+
+  /* ── Horizontal rule ────────────────────────────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: rgb(var(--border) / 0.08);
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   ANIMATIONS
+   ───────────────────────────────────────────────────────────────────────── */
 
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+  50%       { opacity: 0.3; }
 }
-.animate-pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  from { background-position: -200% 0; }
+  to   { background-position:  200% 0; }
+}
+
+.animate-pulse-dot { animation: pulse-dot 2s ease-in-out infinite; }
+.animate-fade-in   { animation: fadeIn   0.22s ease-out both; }
+.animate-slide-up  { animation: slideUp  0.22s ease-out both; }
+
+/* Loading skeleton shimmer */
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(var(--surface-2)) 0%,
+    rgb(var(--surface-3)) 50%,
+    rgb(var(--surface-2)) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}

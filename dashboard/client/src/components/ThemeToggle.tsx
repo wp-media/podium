@@ -57,21 +57,21 @@ export function ThemeToggle({ collapsed }: ThemeToggleProps) {
   return (
     <button
       onClick={toggle}
-      className={`w-full h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
+      className={`w-full h-9 rounded-lg text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors ${
         collapsed
-          ? "flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-surface-3"
-          : "flex items-center gap-2.5 px-3 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-surface-3"
+          ? "flex items-center justify-center"
+          : "flex items-center gap-2.5 px-3"
       }`}
       title={label}
       aria-label={label}
     >
       {isDark ? (
-        <Sun className="w-4 h-4 flex-shrink-0" />
+        <Sun className="w-[15px] h-[15px] flex-shrink-0" />
       ) : (
-        <Moon className="w-4 h-4 flex-shrink-0" />
+        <Moon className="w-[15px] h-[15px] flex-shrink-0" />
       )}
       {!collapsed && (
-        <span className="text-[11px] font-semibold uppercase tracking-wide">Theme</span>
+        <span className="text-[11px] font-semibold uppercase tracking-widest">Theme</span>
       )}
     </button>
   );
