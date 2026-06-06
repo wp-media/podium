@@ -547,7 +547,7 @@ const stmts = {
   stats: db.prepare(`
     SELECT
       (SELECT COUNT(*) FROM sessions) as total_sessions,
-      (SELECT COUNT(*) FROM sessions WHERE status = 'active') as active_sessions,
+      (SELECT COUNT(*) FROM sessions WHERE status = 'active' OR (status = 'error' AND ended_at IS NULL)) as active_sessions,
       (SELECT COUNT(*) FROM agents WHERE status IN ('working', 'waiting')) as active_agents,
       (SELECT COUNT(*) FROM agents) as total_agents,
       (SELECT COUNT(*) FROM events) as total_events

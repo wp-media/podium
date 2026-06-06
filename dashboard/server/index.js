@@ -358,7 +358,7 @@ if (require.main === module) {
     // O(active sessions) instead of O(events rows).
     const active = cleanupDb.db
       .prepare(
-        "SELECT id AS session_id, transcript_path AS tp FROM sessions WHERE status = 'active' AND transcript_path IS NOT NULL ORDER BY updated_at DESC"
+        "SELECT id AS session_id, transcript_path AS tp FROM sessions WHERE (status = 'active' OR (status = 'error' AND ended_at IS NULL)) AND transcript_path IS NOT NULL ORDER BY updated_at DESC"
       )
       .all();
     for (const row of active) {
