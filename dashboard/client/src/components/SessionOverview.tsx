@@ -26,6 +26,7 @@ import { styleForTool } from "./conversation/toolStyle";
 import type { Agent, Session, SessionStats } from "../lib/types";
 
 interface SessionOverviewProps {
+  children?: React.ReactNode;
   session: Session;
   agents: Agent[];
 }
@@ -111,7 +112,7 @@ function ToolUsageRow({ toolName, count, max }: { toolName: string; count: numbe
   );
 }
 
-export function SessionOverview({ session, agents }: SessionOverviewProps) {
+export function SessionOverview({ session, agents, children }: SessionOverviewProps) {
   const [stats, setStats] = useState<SessionStats | null>(null);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const fetchingRef = useRef(false);
@@ -418,6 +419,9 @@ export function SessionOverview({ session, agents }: SessionOverviewProps) {
           <TokenFlowBar tokens={tokens} total={totalTokens} />
         </div>
       )}
+
+      {/* Agents list — injected by the parent page (SessionDetail) */}
+      {children}
 
       {/* Event-type breakdown — secondary, only top 6 */}
       {stats.events_by_type.length > 0 && (

@@ -24,6 +24,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { api } from "../lib/api";
+import { loadAdvancedMetrics } from "../lib/displaySettings";
 import { eventBus } from "../lib/eventBus";
 import { AgentCard } from "../components/AgentCard";
 import { SessionOverview } from "../components/SessionOverview";
@@ -79,6 +80,14 @@ export function SessionDetail() {
   const [filters, setFilters] = useState<EventFiltersValue>(EMPTY_FILTERS);
   const [grouped, setGrouped] = useState(true);
   const [cost, setCost] = useState<CostResult | null>(null);
+  const [advancedMetrics, setAdvancedMetrics] = useState(loadAdvancedMetrics);
+
+  // Keep advancedMetrics in sync if the user toggles it in Settings while this page is open.
+  useEffect(() => {
+    const handler = () => setAdvancedMetrics(loadAdvancedMetrics());
+    window.addEventListener("storage", handler);
+    return () => window.removeEventListener("storage", handler);
+  }, []);
   const [loading, setLoading] = useState(true);
   // True when this session is currently being driven by an in-flight Run
   // handle on /run. Drives the "Open in Run page" banner up top.
@@ -534,7 +543,7 @@ export function SessionDetail() {
                 </span>
               )}
             </span>
-            {cost && cost.total_cost > 0 && (
+            {advancedMetrics && cost && cost.total_cost > 0 && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded">
                 <DollarSign className="w-3 h-3" />
                 {fmtCostFull(cost.total_cost).slice(1)}
@@ -641,18 +650,17 @@ export function SessionDetail() {
 
       {visitedTabs.has("agents") && (
         <div hidden={activeTab !== "agents"}>
-          <SessionOverview session={session} agents={agents} />
-
-          {agents.length === 0 ? (
-            <p className="text-sm text-gray-700 dark:text-gray-500">{t("detail.noAgents")}</p>
-          ) : (
-            <>
-              <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 mb-3 flex items-center gap-1.5">
-                <Bot className="w-3.5 h-3.5 text-amber-700 dark:text-accent" />
-                {t("detail.agents")}
-                <span className="text-gray-400 dark:text-gray-500 font-mono">· {agents.length}</span>
-              </h3>
-              <div className="space-y-2" data-testid="agent-tree">
+          <SessionOverview session={session} agents={agents}>
+            {agents.length === 0 ? (
+              <p className="text-sm text-gray-700 dark:text-gray-500">{t("detail.noAgents")}</p>
+            ) : (
+              <>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 mb-3 flex items-center gap-1.5">
+                  <Bot className="w-3.5 h-3.5 text-amber-700 dark:text-accent" />
+                  {t("detail.agents")}
+                  <span className="text-gray-400 dark:text-gray-500 font-mono">· {agents.length}</span>
+                </h3>
+                <div className="space-y-2" data-testid="agent-tree">
                 {(() => {
                   // Build parent→children map for the full tree (works at any depth)
                   const agentMap = new Map(agents.map((a) => [a.id, a]));
@@ -785,12 +793,13 @@ export function SessionDetail() {
                     </>
                   );
                 })()}
-              </div>
-            </>
-          )}
+                </div>
+              </>
+            )}
+          </SessionOverview>
 
-          {/* Cost Breakdown — shown under Agents tab */}
-          {cost && cost.breakdown.length > 0 && cost.total_cost > 0 && (
+          {/* Cost Breakdown — shown under Agents tab, hidden without advanced metrics */}
+          {advancedMetrics && cost && cost.breakdown.length > 0 && cost.total_cost > 0 && (
             <div className="mt-8">
               <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 mb-4 flex items-center gap-1.5">
                 <DollarSign className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" />
