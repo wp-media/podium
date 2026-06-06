@@ -58,8 +58,14 @@ router.get("/", (req, res) => {
     params.push(like, like, like);
   }
   if (status) {
-    where.push("s.status = ?");
-    params.push(status);
+    // "active" includes error sessions that haven't ended yet — a session
+    // can be marked 'error' by a transcript scan while still running.
+    if (status === "active") {
+      where.push("(s.status = 'active' OR (s.status = 'error' AND s.ended_at IS NULL))");
+    } else {
+      where.push("s.status = ?");
+      params.push(status);
+    }
   }
   if (cwd) {
     where.push("s.cwd = ?");
