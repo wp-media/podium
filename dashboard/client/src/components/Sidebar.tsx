@@ -127,6 +127,7 @@ interface SidebarProps {
 }
 
 export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
+  const websiteLabel = "wp-media.me";
 
   // Kanban visibility — hidden by default, toggled via Settings
   const [kanbanVisible, setKanbanVisible] = useState(loadKanbanVisible);
@@ -306,77 +307,65 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 glass-panel flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
+      className={`fixed left-0 top-0 bottom-0 bg-white/90 dark:bg-surface-1/90 backdrop-blur-md border-r border-white/50 dark:border-border flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
         collapsed ? "w-[4.25rem]" : "w-60"
       }`}
     >
-      {/* ── Brand ─────────────────────────────────────────────────────────── */}
-      <div className={`flex-shrink-0 border-b border-border/7 ${collapsed ? "py-4 px-2" : "px-4 py-4"}`}>
-        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3"}`}>
-          {/* Logo mark — gold diamond on a glowing bg */}
-          <div className="relative w-8 h-8 flex-shrink-0">
-            <div className="absolute inset-0 rounded-lg bg-accent/20 dark:bg-accent/15" />
-            <div className="absolute inset-0 rounded-lg flex items-center justify-center">
-              <span className="text-[15px] leading-none text-accent drop-shadow-[0_0_6px_rgba(254,210,58,0.6)]" aria-hidden>
-                ◆
-              </span>
-            </div>
+      {/* Brand */}
+      <div className="px-3 py-4 border-b border-border flex-shrink-0">
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
+          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-base leading-none text-accent" aria-hidden>
+              ◆
+            </span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-[13px] font-bold tracking-tight text-fg-base truncate">Podium</h1>
-              <p className="text-[10px] font-semibold text-accent/70 dark:text-accent/60 tracking-widest uppercase">
-                wp-media
-              </p>
+              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">Podium</h1>
+              <p className="text-[11px] text-amber-700 dark:text-accent font-semibold">{"{wpmedia}"}</p>
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Nav ───────────────────────────────────────────────────────────── */}
-      {/* Only this section scrolls; brand, controls, and footer stay pinned. */}
+      {/* Nav — only this section scrolls when its items overflow; the rest of
+          the sidebar (brand, collapse toggle, footer) stays pinned.
+          Chevron buttons appear at the edges when content is clipped, so the
+          user knows there's more to reach without inspecting the scrollbar. */}
       <div className="flex-1 min-h-0 relative flex">
-        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-0.5">
-          {NAV_ITEMS.map(({ to, icon: Icon, label }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === "/"}
-              title={collapsed ? label : undefined}
-              className={({ isActive }) =>
-                `relative flex items-center gap-3 rounded-lg text-[13px] font-medium transition-all duration-150 ${
-                  collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
-                } ${
-                  isActive
-                    ? "bg-accent/12 dark:bg-accent/10 text-accent font-semibold"
-                    : "text-fg-muted hover:text-fg-base hover:bg-surface-3/60 dark:hover:bg-surface-3/80"
-                }`
-              }
-            >
-              {({ isActive }) => (
-                <>
-                  {/* Left accent bar — only on active */}
-                  {isActive && !collapsed && (
-                    <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-accent" />
-                  )}
-                  <Icon className="w-[15px] h-[15px] flex-shrink-0" />
-                  {!collapsed && <span>{label}</span>}
-                </>
-              )}
-            </NavLink>
-          ))}
+        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1">
+          {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
+            return (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === "/"}
+                title={collapsed ? label : undefined}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
+                    collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
+                  } ${
+                    isActive
+                      ? "bg-accent/20 dark:bg-accent/10 text-gray-900 dark:text-accent border-l-2 border-accent font-semibold"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-4 dark:hover:bg-surface-3 border-l-2 border-transparent"
+                  }`
+                }
+              >
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {!collapsed && <span>{label}</span>}
+              </NavLink>
+            );
+          })}
         </nav>
-
-        {/* Scroll affordance chevrons */}
         {!collapsed && navOverflow.up && (
           <button
             type="button"
             onClick={() => scrollNavBy(-160)}
             aria-label="Scroll navigation up"
             title="Scroll navigation up"
-            className="absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-5 h-5 rounded-md border border-border/10 bg-surface-2 text-fg-dim hover:text-fg-base hover:bg-surface-3 shadow-sm transition-colors animate-fade-in"
+            className="absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-6 h-6 rounded-md border border-border bg-surface-2/90 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-50 hover:bg-surface-3 shadow-md backdrop-blur-sm transition-colors animate-fade-in"
           >
-            <ChevronUp className="w-3 h-3" aria-hidden />
+            <ChevronUp className="w-3.5 h-3.5" aria-hidden />
           </button>
         )}
         {!collapsed && navOverflow.down && (
@@ -385,109 +374,109 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
             onClick={() => scrollNavBy(160)}
             aria-label="Scroll navigation down"
             title="Scroll navigation down"
-            className="absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-5 h-5 rounded-md border border-border/10 bg-surface-2 text-fg-dim hover:text-fg-base hover:bg-surface-3 shadow-sm transition-colors animate-fade-in"
+            className="absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-6 h-6 rounded-md border border-border bg-surface-2/90 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-50 hover:bg-surface-3 shadow-md backdrop-blur-sm transition-colors animate-fade-in"
           >
-            <ChevronDown className="w-3 h-3" aria-hidden />
+            <ChevronDown className="w-3.5 h-3.5" aria-hidden />
           </button>
         )}
       </div>
 
-      {/* ── Controls (theme + collapse) ────────────────────────────────────── */}
-      <div className={`flex-shrink-0 border-t border-border/7 px-2 py-2 space-y-1`}>
+      {/* Collapse toggle */}
+      <div className="px-2 py-2 flex-shrink-0 space-y-2">
         <ThemeToggle collapsed={collapsed} />
         <button
           onClick={onToggle}
+          className={`w-full h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
+            collapsed
+              ? "flex items-center justify-center text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-3"
+              : "flex items-center gap-2.5 px-3 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-surface-3"
+          }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          className={`w-full h-9 rounded-lg text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors ${
-            collapsed
-              ? "flex items-center justify-center"
-              : "flex items-center gap-2.5 px-3"
-          }`}
         >
           {collapsed ? (
             <PanelLeftOpen className="w-4 h-4 flex-shrink-0" />
           ) : (
             <>
               <PanelLeftClose className="w-4 h-4 flex-shrink-0" />
-              <span className="text-[11px] font-semibold uppercase tracking-widest">Collapse</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wide">Collapse</span>
             </>
           )}
         </button>
       </div>
 
-      {/* ── Footer ────────────────────────────────────────────────────────── */}
-      <div className={`flex-shrink-0 border-t border-border/7 pb-4 pt-3 space-y-1 ${collapsed ? "px-2" : "px-3"}`}>
-        {/* Connection status pill */}
+      {/* Footer */}
+      <div
+        className={`px-3 pt-3 pb-4 border-t border-border space-y-2.5 flex-shrink-0 ${collapsed ? "px-2" : ""}`}
+      >
         <button
           type="button"
           onClick={() => setStatusModalOpen(true)}
           aria-label="Connection details"
           title="Connection details"
-          className={`w-full rounded-lg border border-border/8 bg-surface-3/40 hover:bg-surface-3/80 transition-colors cursor-pointer ${
+          className={`rounded-lg border border-border bg-surface-2 hover:bg-surface-3 transition-colors text-left cursor-pointer ${
             collapsed
-              ? "h-8 flex items-center justify-center"
-              : "px-2.5 py-2 flex items-center justify-between gap-2"
+              ? "w-8 h-8 mx-auto flex items-center justify-center p-0"
+              : "block w-full px-2.5 py-2"
           }`}
         >
-          <span
-            className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${
-              wsConnected ? "text-emerald-600 dark:text-emerald-400" : "text-fg-dim"
-            }`}
+          <div
+            className={`flex items-center text-xs ${collapsed ? "justify-center" : "justify-between gap-2"}`}
           >
-            {wsConnected ? (
-              <>
-                <span className="relative flex w-1.5 h-1.5 flex-shrink-0">
-                  <span className="animate-ping absolute inset-0 rounded-full bg-emerald-400 opacity-60" />
-                  <span className="relative rounded-full w-1.5 h-1.5 bg-emerald-500 dark:bg-emerald-400" />
-                </span>
-                {wsConnected ? (
-                  <Wifi className="w-3.5 h-3.5 flex-shrink-0" />
-                ) : null}
-              </>
-            ) : (
-              <WifiOff className="w-3.5 h-3.5 flex-shrink-0 text-fg-dim" />
-            )}
-            {!collapsed && <span>{wsConnected ? "Live" : "Disconnected"}</span>}
-          </span>
-          {!collapsed && (
-            <span className="text-[10px] font-mono font-medium text-fg-dim">v{__APP_VERSION__}</span>
-          )}
+            <span
+              className={`inline-flex items-center gap-2 ${
+                wsConnected ? "text-emerald-700 dark:text-emerald-400" : "text-gray-700 dark:text-gray-500"
+              }`}
+            >
+              {wsConnected ? (
+                <Wifi className="w-3.5 h-3.5 flex-shrink-0" />
+              ) : (
+                <WifiOff className="w-3.5 h-3.5 flex-shrink-0" />
+              )}
+              {!collapsed && (
+                <span className="font-medium">{wsConnected ? "Live" : "Disconnected"}</span>
+              )}
+            </span>
+            {!collapsed && <span className="text-[11px] font-medium text-gray-600">v{__APP_VERSION__}</span>}
+          </div>
         </button>
-
-        {/* External links */}
-        {!collapsed ? (
-          <div className="flex gap-1.5 pt-0.5">
+        {!collapsed && (
+          <div className="space-y-1.5">
             <a
-              href="https://github.com/wp-media/podium"
+              href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
+              className="group flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-200 hover:bg-surface-3 hover:border-border transition-colors"
               title="GitHub"
-              className="flex-1 flex items-center justify-center gap-1.5 h-7 rounded-lg text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors text-[11px] font-medium"
             >
-              <Github className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>GitHub</span>
+              <span className="w-6 h-6 rounded-md bg-surface-3 flex items-center justify-center">
+                <Github className="w-3.5 h-3.5 flex-shrink-0" />
+              </span>
+              <span className="font-medium">GitHub</span>
             </a>
             <a
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              title="wp-media.me"
-              className="flex-1 flex items-center justify-center gap-1.5 h-7 rounded-lg text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors text-[11px] font-medium"
+              className="group flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-200 hover:bg-surface-3 hover:border-border transition-colors"
+              title={websiteLabel}
             >
-              <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-              <span>wp-media</span>
+              <span className="w-6 h-6 rounded-md bg-surface-3 flex items-center justify-center">
+                <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+              </span>
+              <span className="font-medium text-gray-600 dark:text-gray-300 truncate">{websiteLabel}</span>
             </a>
           </div>
-        ) : (
-          <div className="flex flex-col items-center gap-1 pt-0.5">
+        )}
+        {collapsed && (
+          <div className="flex flex-col items-center gap-2 pt-0.5">
             <a
-              href="https://github.com/wp-media/podium"
+              href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
+              className="w-8 h-8 rounded-md border border-transparent flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-surface-3 hover:border-border transition-colors"
               title="GitHub"
               aria-label="GitHub"
-              className="w-8 h-7 rounded-lg flex items-center justify-center text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors"
             >
               <Github className="w-3.5 h-3.5" />
             </a>
@@ -495,9 +484,9 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              title="wp-media.me"
-              aria-label="wp-media.me"
-              className="w-8 h-7 rounded-lg flex items-center justify-center text-fg-dim hover:text-fg-base hover:bg-surface-3/60 transition-colors"
+              className="w-8 h-8 rounded-md border border-transparent flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-surface-3 hover:border-border transition-colors"
+              title={websiteLabel}
+              aria-label={websiteLabel}
             >
               <Globe className="w-3.5 h-3.5" />
             </a>

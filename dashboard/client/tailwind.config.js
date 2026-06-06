@@ -5,10 +5,9 @@ export default {
   theme: {
     extend: {
       colors: {
-        // All tokens are stored as RGB channels in index.css.
-        // `:root` = light theme, `.dark` overrides to dark values.
-        // The <alpha-value> placeholder enables opacity modifiers:
-        //   bg-surface-2/80, border-border/40, text-fg-muted/60, etc.
+        // Tokens are stored as RGB channels in index.css (":root" / ".dark")
+        // and referenced with the <alpha-value> placeholder so opacity
+        // modifiers like bg-accent/15 and border-border/40 work in both themes.
         surface: {
           0: "rgb(var(--surface-0) / <alpha-value>)",
           1: "rgb(var(--surface-1) / <alpha-value>)",
@@ -19,39 +18,36 @@ export default {
         },
         border: {
           DEFAULT: "rgb(var(--border) / <alpha-value>)",
-          light:   "rgb(var(--border-light) / <alpha-value>)",
+          light: "rgb(var(--border-light) / <alpha-value>)",
         },
         accent: {
           DEFAULT: "rgb(var(--accent) / <alpha-value>)",
-          hover:   "rgb(var(--accent-hover) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
+          // Already a finished rgba — used directly, no alpha modifier.
+          muted: "var(--accent-muted)",
         },
         fg: {
-          base:  "rgb(var(--text-primary) / <alpha-value>)",
-          muted: "rgb(var(--text-muted)   / <alpha-value>)",
-          dim:   "rgb(var(--text-dim)     / <alpha-value>)",
+          base: "rgb(var(--text-primary) / <alpha-value>)",
+          muted: "rgb(var(--text-muted) / <alpha-value>)",
+          dim: "rgb(var(--text-dim) / <alpha-value>)",
         },
       },
       fontFamily: {
-        sans: ["'Inter'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        sans: ["'Whitney HTF Medium'", "'Inter'", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
         mono: ["'JetBrains Mono'", "'Fira Code'", "Consolas", "monospace"],
-      },
-      boxShadow: {
-        card:     "var(--card-shadow)",
-        elevated: "var(--elevated-shadow)",
-        accent:   "var(--accent-glow)",
       },
       animation: {
         "pulse-slow": "pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite",
-        "fade-in":    "fadeIn  0.22s ease-out",
-        "slide-up":   "slideUp 0.22s ease-out",
+        "fade-in": "fadeIn 0.3s ease-out",
+        "slide-up": "slideUp 0.3s ease-out",
       },
       keyframes: {
         fadeIn: {
-          "0%":   { opacity: "0" },
+          "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
         slideUp: {
-          "0%":   { opacity: "0", transform: "translateY(8px)" },
+          "0%": { opacity: "0", transform: "translateY(8px)" },
           "100%": { opacity: "1", transform: "translateY(0)" },
         },
       },
