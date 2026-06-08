@@ -610,9 +610,13 @@ function readStatusline() {
   const userSettingsPath = path.join(getClaudeHome(), "settings.json");
   const j = readJson(userSettingsPath);
   const config = j.ok && j.data && j.data.statusLine ? j.data.statusLine : null;
+  // Candidates are checked in order; first existing file wins.
+  // .py works everywhere (Python); .sh is Unix-only; .cmd/.bat are Windows-only.
   const candidates = [
     path.join(getClaudeHome(), "statusline.py"),
     path.join(getClaudeHome(), "statusline-command.sh"),
+    path.join(getClaudeHome(), "statusline-command.cmd"),
+    path.join(getClaudeHome(), "statusline-command.bat"),
   ];
   const scripts = [];
   for (const file of candidates) {

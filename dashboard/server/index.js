@@ -23,7 +23,8 @@ if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";
       val = val.slice(1, -1);
     }
     if (!process.env[key]) {
-      process.env[key] = val.replace(/^~(?=\/)/, os.homedir());
+      // Replace leading ~ with home dir — covers "~" alone and "~/..." paths.
+      process.env[key] = val.replace(/^~(?=\/|$)/, os.homedir());
     }
   }
 })();

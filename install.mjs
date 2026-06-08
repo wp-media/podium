@@ -11,12 +11,13 @@
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, resolve, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { homedir } from 'node:os'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
 // Copy hook.mjs to a stable location that won't change between plugin updates.
 // Registered path in settings.json must not depend on the plugin cache hash.
-const STABLE_DIR = join(process.env.HOME ?? '~', '.claude', 'podium')
+const STABLE_DIR = join(homedir(), '.claude', 'podium')
 const STABLE_HOOK = join(STABLE_DIR, 'hook.mjs')
 
 const HOOK_PATH = STABLE_HOOK
@@ -51,7 +52,7 @@ const MODE = args.includes('--uninstall') ? 'uninstall'
 
 // ── Find settings.json (project or global) ────────────────────────────────────
 const projectSettings = join(process.cwd(), '.claude', 'settings.json')
-const globalSettings  = join(process.env.HOME ?? '~', '.claude', 'settings.json')
+const globalSettings  = join(homedir(), '.claude', 'settings.json')
 const SETTINGS_PATH   = args.includes('--global') ? globalSettings : projectSettings
 
 // ── Read existing settings ────────────────────────────────────────────────────

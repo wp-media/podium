@@ -131,18 +131,27 @@ function countsSummary(counters) {
 router.get("/guide", (_req, res) => {
   const platform = process.platform;
   const claudeHome = getClaudeHome();
-  const claudeHomeDisplay = claudeHome.replace(os.homedir(), "~");
-  const projectsDisplay = path.join(claudeHomeDisplay, "projects");
+  // Build display paths per-platform using the platform's native separator.
+  // posixDisplay: always forward-slash (for darwin/linux instructions)
+  // winDisplay:   always backslash (for win32 instructions)
+  const home = os.homedir();
+  const posixHome = home.split(path.sep).join("/");
+  const posixClaudeHome = claudeHome.split(path.sep).join("/");
+  const posixProjectsHome = posixClaudeHome + "/projects";
+  const claudeHomeDisplay = posixClaudeHome.replace(posixHome, "~");
+  const projectsDisplay = claudeHomeDisplay + "/projects";
+  const winClaudeHomeDisplay = claudeHome.replace(home, "%USERPROFILE%");
+  const winProjectsDisplay = winClaudeHomeDisplay + "\\projects";
   const defaults = {
     darwin: projectsDisplay,
     linux: projectsDisplay,
-    win32: projectsDisplay.replace(/\//g, "\\"),
+    win32: winProjectsDisplay,
   };
   const archiveBase = claudeHomeDisplay;
   const archiveCmd = {
     darwin: `tar -czf claude-history.tar.gz -C ${archiveBase} projects`,
     linux: `tar -czf claude-history.tar.gz -C ${archiveBase} projects`,
-    win32: `tar -czf claude-history.tar.gz -C "${projectsDisplay.replace(/\//g, "\\")}" projects`,
+    win32: `tar -czf claude-history.tar.gz -C "${winClaudeHomeDisplay}" projects`,
   };
   const exists = fs.existsSync(getProjectsDir());
   let projectCount = 0;
@@ -237,7 +246,12 @@ router.post("/scan-path", async (req, res) => {
   }
 
   // Expand ~ to the user's home directory for convenience.
-  const expanded = rawPath.startsWith("~") ? path.join(os.homedir(), rawPath.slice(1)) : rawPath;
+  // Handle bare "~" (= home) and "~/..." (= home + rest) on all platforms.
+  const expanded = rawPath === "~"
+    ? os.homedir()
+    : rawPath.startsWith("~" + path.sep) || rawPath.startsWith("~/")
+      ? path.join(os.homedir(), rawPath.slice(2))
+      : rawPath;
   if (!path.isAbsolute(expanded)) {
     return res.status(400).json({
       error: { code: "INVALID_INPUT", message: "`path` must be an absolute path" },

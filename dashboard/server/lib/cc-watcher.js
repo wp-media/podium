@@ -34,7 +34,9 @@ const RELEVANT_PREFIXES = [
   "settings.local.json",
   "keybindings.json",
   "statusline.py",
-  "statusline-command.sh",
+  "statusline-command.sh",   // Unix/macOS
+  "statusline-command.cmd",  // Windows
+  "statusline-command.bat",  // Windows (legacy)
   "known_marketplaces.json",
   "agents",
   "commands",

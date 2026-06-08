@@ -171,7 +171,8 @@ function findSubagentTranscriptPath(sessionId, agentId) {
  * Returns the resolved absolute path.
  */
 function setClaudeHome(newPath) {
-  const resolved = newPath.replace(/^~(?=\/)/, os.homedir());
+  // Replace leading ~ with home dir — covers "~" alone and "~/..." paths.
+  const resolved = newPath.replace(/^~(?=\/|$)/, os.homedir());
   if (!path.isAbsolute(resolved)) {
     throw new Error("CLAUDE_HOME must be an absolute path");
   }
