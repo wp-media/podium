@@ -285,10 +285,12 @@ if (require.main === module) {
   process.on("SIGTERM", () => shutdown("SIGTERM"));
   process.on("SIGINT", () => shutdown("SIGINT"));
 
-  // Auto-install Claude Code hooks on every startup so users don't have to
+  // Auto-install Claude Code hooks on every startup so users don't have to.
+  // install-hooks.js is a CLI wrapper script (no exports) — run as child process.
   try {
-    const { installHooks } = require("../scripts/install-hooks");
-    installHooks(true);
+    const { execFileSync } = require("child_process");
+    const installScript = path.join(__dirname, "../scripts/install-hooks.js");
+    execFileSync(process.execPath, [installScript], { stdio: "pipe" });
     console.log("Podium hooks auto-configured.");
   } catch {
     // Non-fatal — user can run npm run install-hooks manually

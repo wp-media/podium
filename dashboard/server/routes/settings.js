@@ -4,6 +4,7 @@
  */
 
 const { Router } = require("express");
+const { execFileSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -152,10 +153,11 @@ router.post("/reimport", async (_req, res) => {
 // POST /api/settings/reinstall-hooks — reinstall Claude Code hooks
 router.post("/reinstall-hooks", (_req, res) => {
   try {
-    const { installHooks } = require("../../scripts/install-hooks");
-    const success = installHooks(true);
+    // install-hooks.js is a CLI wrapper — run it as a child process.
+    const installScript = path.resolve(__dirname, "../../scripts/install-hooks.js");
+    execFileSync(process.execPath, [installScript], { stdio: "pipe" });
     const hookStatus = getHookStatus();
-    res.json({ ok: success, hooks: hookStatus });
+    res.json({ ok: true, hooks: hookStatus });
   } catch (err) {
     res.status(500).json({
       error: { code: "HOOK_INSTALL_FAILED", message: err.message },
