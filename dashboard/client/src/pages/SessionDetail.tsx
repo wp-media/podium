@@ -1083,6 +1083,7 @@ export function SessionDetail() {
                               agent={agent}
                               session={session ?? undefined}
                               label={compactionLabels.get(agent.id)}
+                              isLeaf={!hasChildren}
                               onClick={
                                 hasChildren
                                   ? toggleExpanded

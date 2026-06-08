@@ -72,6 +72,10 @@ function createApp() {
   app.use("/api/workflows", workflowsRouter);
   app.use("/api/push", pushRouter);
   app.use("/api/import", importRouter);
+  // Session-bundle import (POST /api/import/session) lives in exportRouter
+  // and is registered here after the history importRouter so existing routes
+  // (/guide, /trigger, /status) are matched first.
+  app.use("/api/import", exportRouter);
   app.use("/api/updates", updatesRouter);
   app.use("/api/cc-config", ccConfigRouter);
   app.use("/api/run", runRouter);

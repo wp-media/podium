@@ -4,10 +4,15 @@
  * POST /api/import/session     — Import a previously-exported session bundle.
  */
 
+const express = require("express");
 const { Router } = require("express");
 const { db } = require("../db");
 
 const router = Router();
+
+// Session exports can be many megabytes. Apply a generous limit only to the
+// import endpoint — the global 1 MB cap is fine for everything else.
+const IMPORT_JSON_LIMIT = "50mb";
 
 const EXPORT_VERSION = "1.0";
 
@@ -48,11 +53,11 @@ router.get("/session/:id", (req, res) => {
   res.json(bundle);
 });
 
-// POST /api/import/session
+// POST /api/import/session  (also reachable via POST /api/export/session)
 // Accepts a JSON bundle (the format produced by GET /api/export/session/:id)
 // and inserts all records using INSERT OR IGNORE (sessions, agents, events)
 // and INSERT OR REPLACE (token_usage).
-router.post("/", (req, res) => {
+router.post("/session", express.json({ limit: IMPORT_JSON_LIMIT }), (req, res) => {
   const bundle = req.body;
 
   if (!bundle || typeof bundle !== "object") {
