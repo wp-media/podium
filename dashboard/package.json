@@ -1,7 +1,7 @@
 {
   "name": "podium-dashboard",
   "version": "1.2.0",
-  "description": "Podium — Maestro agent observer dashboard by WP Media",
+  "description": "Podium — Maestro agent observer dashboard by Gael Robin",
   "private": true,
   "type": "commonjs",
   "main": "server/index.js",
@@ -14,7 +14,7 @@
     "README.md",
     "LICENSE"
   ],
-  "author": "WP Media",
+  "author": "Gael Robin <robin.gael@gmail.com>",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/wp-media/podium.git"

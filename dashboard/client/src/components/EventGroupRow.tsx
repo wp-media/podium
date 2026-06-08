@@ -5,7 +5,7 @@
  * events — e.g. 🟢 → 🔵 for a Pre/Post pair — plus tool name, summary, and
  * the wall-clock duration between first and last event. Clicking the chevron
  * expands the group inline to reveal each underlying event row.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useState } from "react";

@@ -1,19 +1,8 @@
 #!/usr/bin/env node
 /**
- * Dev orchestrator. Picks a free port for the dev server (starting at the
- * conventional 4820), exports it via `DASHBOARD_PORT`, then spawns the
- * existing concurrently pipeline. Both `dev:server` (server/index.js) and
- * `dev:client` (vite.config.ts) read the same env var, so they stay in
- * lockstep.
- *
- * Why this exists: on machines that hold 4820 via an SSH `LocalForward`,
- * SSH binds the loopback specifically (`127.0.0.1:4820` and `[::1]:4820`),
- * Node's wildcard `server.listen(4820)` "succeeds" without binding the
- * loopback, and every Vite proxy request to `localhost:4820` lands on SSH
- * instead of Express — silent `ECONNRESET`s everywhere. Probing both IP
- * families before we ever try to bind catches that.
- *
- * Built atop the macOS desktop app groundwork in PR #151 by @shuvamk.
+ * Dev orchestrator. Picks a free port for the backend (starting at 4820),
+ * then spawns `dev:server` and `dev:client` in parallel using Node's own
+ * child_process — no dependency on the concurrently binary.
  */
 
 const net = require("node:net");
@@ -22,13 +11,12 @@ const { spawn } = require("node:child_process");
 const START = parseInt(process.env.DASHBOARD_PORT || "4820", 10);
 const RANGE = 40;
 
+const COLORS = { server: "\x1b[34m", client: "\x1b[32m", reset: "\x1b[0m" };
+
 function probeHost(host, port, timeoutMs) {
   return new Promise((resolve) => {
     const sock = net.createConnection({ host, port });
-    const done = (busy) => {
-      sock.destroy();
-      resolve(busy);
-    };
+    const done = (busy) => { sock.destroy(); resolve(busy); };
     sock.setTimeout(timeoutMs);
     sock.once("connect", () => done(true));
     sock.once("error", () => done(false));
@@ -37,8 +25,6 @@ function probeHost(host, port, timeoutMs) {
 }
 
 async function busy(port) {
-  // IPv4 first (most common), IPv6 second. Either bind shadowing Node's
-  // wildcard listen is enough to break the proxy.
   if (await probeHost("127.0.0.1", port, 600)) return true;
   if (await probeHost("::1", port, 300)) return true;
   return false;
@@ -51,6 +37,25 @@ async function pickPort() {
   throw new Error(`No free port found in ${START}-${START + RANGE - 1}`);
 }
 
+function prefix(name, line) {
+  const c = COLORS[name] ?? "";
+  return `${c}[${name}]${COLORS.reset} ${line}`;
+}
+
+function spawnNpm(script, name, env) {
+  const child = spawn("npm", ["run", script], {
+    env,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  child.stdout.on("data", (d) =>
+    d.toString().split("\n").filter(Boolean).forEach((l) => console.log(prefix(name, l)))
+  );
+  child.stderr.on("data", (d) =>
+    d.toString().split("\n").filter(Boolean).forEach((l) => console.error(prefix(name, l)))
+  );
+  return child;
+}
+
 (async () => {
   let port;
   try {
@@ -59,39 +64,32 @@ async function pickPort() {
     console.error(`[dev] ${err.message}`);
     process.exit(1);
   }
+
   if (port !== START) {
-    console.log(
-      `[dev] port ${START} is busy (something is on the loopback already — likely an SSH LocalForward); using ${port} instead`
-    );
+    console.log(`[dev] port ${START} busy; using ${port} instead`);
   } else {
     console.log(`[dev] dashboard server will listen on :${port}`);
   }
 
-  const child = spawn(
-    "npx",
-    [
-      "--no-install",
-      "concurrently",
-      "-n",
-      "server,client",
-      "-c",
-      "blue,green",
-      "npm run dev:server",
-      "npm run dev:client",
-    ],
-    {
-      stdio: "inherit",
-      env: { ...process.env, DASHBOARD_PORT: String(port) },
-    }
-  );
+  const env = { ...process.env, DASHBOARD_PORT: String(port) };
+  const server = spawnNpm("dev:server", "server", env);
+  const client = spawnNpm("dev:client", "client", env);
 
-  // Propagate Ctrl-C / SIGTERM so concurrently can shut both legs down
-  // gracefully instead of being orphaned.
+  const kids = [server, client];
+
   for (const sig of ["SIGINT", "SIGTERM"]) {
-    process.on(sig, () => child.kill(sig));
+    process.on(sig, () => {
+      kids.forEach((k) => { try { k.kill(sig); } catch {} });
+    });
   }
-  child.on("exit", (code, signal) => {
-    if (signal) process.kill(process.pid, signal);
-    else process.exit(code || 0);
-  });
+
+  let exited = 0;
+  for (const child of kids) {
+    child.on("exit", (code, signal) => {
+      exited++;
+      // Kill the other one too when either exits
+      kids.forEach((k) => { try { k.kill("SIGTERM"); } catch {} });
+      if (exited === kids.length) process.exit(code || 0);
+    });
+  }
 })();

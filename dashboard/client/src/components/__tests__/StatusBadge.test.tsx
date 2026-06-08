@@ -1,7 +1,7 @@
 /**
  * @file StatusBadge.test.tsx
  * @description Unit tests for the StatusBadge component, which includes AgentStatusBadge and SessionStatusBadge. These components are responsible for displaying the status of agents and sessions in the dashboard. The tests cover rendering of different statuses, application of pulse animation based on status, and respect for explicit pulse overrides. The tests use React Testing Library and Vitest for assertions and mocking.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { describe, it, expect } from "vitest";

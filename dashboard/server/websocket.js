@@ -1,6 +1,6 @@
 /**
  * @file WebSocket functionalities for real-time communication with clients, including connection management, heartbeat for detecting dead connections, and broadcasting messages to all connected clients.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { WebSocketServer } = require("ws");

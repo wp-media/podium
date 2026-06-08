@@ -1,7 +1,7 @@
 /**
  * @file AgentCard.test.tsx
  * @description Unit tests for the AgentCard component, which displays information about an agent in the application. The tests cover rendering of agent details such as name, status, subagent type, task, and current tool, as well as interaction handling like click events. The tests use React Testing Library and Vitest for assertions and mocking.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { describe, it, expect, vi } from "vitest";

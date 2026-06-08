@@ -6,7 +6,7 @@
  * null for events where a summary would add nothing (e.g. unknown tools with
  * empty payloads).
  *
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import type { DashboardEvent } from "./types";

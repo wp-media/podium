@@ -7,7 +7,7 @@
  * low-risk text-file surfaces (skills, agents, commands, output styles,
  * memory). Plugins, MCP, hooks-in-settings, and settings.json files stay
  * read-only — those have concurrent-write races with the live CLI.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -47,6 +47,7 @@ import {
   Keyboard,
   CircleDot,
   CircleSlash,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -405,7 +406,7 @@ export function CcConfig() {
         </div>
       )}
 
-      <Tabs current={tab} onSelect={setTab} counts={data.overview?.counts} />
+      <Tabs current={tab} onSelect={setTab} counts={data.overview?.counts} plugins={data.plugins?.plugins} />
 
       <div className="rounded-xl border border-border bg-surface-1">
         {tab !== "overview" && (
@@ -487,7 +488,7 @@ function Header({
       })
     : "—";
   return (
-    <header className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+    <header className="page-header flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
       <div className="flex items-start gap-3 min-w-0 flex-1">
         <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0">
           <Boxes className="w-4.5 h-4.5 text-accent" />
@@ -571,9 +572,10 @@ interface TabsProps {
   current: TabKey;
   onSelect: (k: TabKey) => void;
   counts?: CcOverview["counts"];
+  plugins?: CcPlugin[] | null;
 }
 
-function Tabs({ current, onSelect, counts }: TabsProps) {
+function Tabs({ current, onSelect, counts, plugins }: TabsProps) {
   const { t } = useTranslation("ccConfig");
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
@@ -622,15 +624,23 @@ function Tabs({ current, onSelect, counts }: TabsProps) {
     el.scrollBy({ left: dir * Math.max(200, el.clientWidth * 0.6), behavior: "smooth" });
   };
 
+  const pluginTotals = (plugins ?? [])
+    .filter((p) => p.enabled !== false && p.contributes)
+    .reduce((acc, p) => ({
+      skills: acc.skills + (p.contributes?.skills ?? 0),
+      agents: acc.agents + (p.contributes?.agents ?? 0),
+      commands: acc.commands + (p.contributes?.commands ?? 0),
+    }), { skills: 0, agents: 0, commands: 0 });
+
   const countFor = (key: TabKey): number | null => {
     if (!counts) return null;
     switch (key) {
       case "skills":
-        return counts.skills.user + counts.skills.project;
+        return counts.skills.user + counts.skills.project + pluginTotals.skills;
       case "agents":
-        return counts.agents.user + counts.agents.project;
+        return counts.agents.user + counts.agents.project + pluginTotals.agents;
       case "commands":
-        return counts.commands.user + counts.commands.project;
+        return counts.commands.user + counts.commands.project + pluginTotals.commands;
       case "outputStyles":
         return counts.outputStyles.user + counts.outputStyles.project;
       case "plugins":
@@ -1198,10 +1208,20 @@ function MdItemList({ items, plugins, search, onOpen, onEdit, onDelete, kind }: 
 
   if (filtered.length === 0 && pluginRows.length === 0) return <Empty />;
 
-  const SectionHeader = ({ label }: { label: string }) => (
-    <h3 className="text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 mb-2 mt-1">
-      {label}
-    </h3>
+  const [userCollapsed, setUserCollapsed] = useState(false);
+
+  const SectionHeader = ({ label, collapsible, collapsed, onToggle }: { label: string; collapsible?: boolean; collapsed?: boolean; onToggle?: () => void }) => (
+    <button
+      className={`flex items-center gap-1.5 mb-2 mt-1 w-full text-left ${collapsible ? "cursor-pointer group" : "cursor-default"}`}
+      onClick={collapsible ? onToggle : undefined}
+    >
+      <span className="border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5 text-[11px] font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
+        {label}
+      </span>
+      {collapsible && (
+        <ChevronDown className={`w-3 h-3 text-gray-400 transition-transform ${collapsed ? "-rotate-90" : ""}`} />
+      )}
+    </button>
   );
 
   // If items are not split by scope (all other scopes or no grouping needed), render flat
@@ -1236,19 +1256,21 @@ function MdItemList({ items, plugins, search, onOpen, onEdit, onDelete, kind }: 
     <div className="space-y-3">
       {userItems.length > 0 && (
         <div>
-          <SectionHeader label={t("scope.user")} />
-          <div className="space-y-2">
-            {userItems.map((it) => (
-              <MdItemCard
-                key={`${it.scope}:${it.name}`}
-                item={it}
-                onOpen={onOpen}
-                onEdit={onEdit}
-                onDelete={onDelete}
-                kind={kind}
-              />
-            ))}
-          </div>
+          <SectionHeader label={t("scope.user")} collapsible collapsed={userCollapsed} onToggle={() => setUserCollapsed((v) => !v)} />
+          {!userCollapsed && (
+            <div className="space-y-2">
+              {userItems.map((it) => (
+                <MdItemCard
+                  key={`${it.scope}:${it.name}`}
+                  item={it}
+                  onOpen={onOpen}
+                  onEdit={onEdit}
+                  onDelete={onDelete}
+                  kind={kind}
+                />
+              ))}
+            </div>
+          )}
         </div>
       )}
       {projectItems.length > 0 && (
@@ -1304,15 +1326,21 @@ function PluginContribRow({
   kind: "skills" | "agents" | "commands";
 }) {
   const { t } = useTranslation("ccConfig");
+  const [expanded, setExpanded] = useState(false);
   const count = p.contributes?.[kind] ?? 0;
+  const itemsKey = `${kind.slice(0, -1)}Items` as "commandItems" | "agentItems" | "skillItems";
+  const items = p.contributes?.[itemsKey] ?? [];
   const labelMap: Record<string, string> = {
     skills: t("plugins.skills", { count }),
     agents: t("plugins.agents", { count }),
     commands: t("plugins.commands", { count }),
   };
   return (
-    <div className="rounded-lg border border-border bg-surface-2 px-4 py-3 hover:border-border/80 transition-colors">
-      <div className="flex items-center justify-between gap-3">
+    <div className="rounded-lg border border-border bg-surface-2 hover:border-border/80 transition-colors overflow-hidden">
+      <button
+        className="w-full px-4 py-3 flex items-center justify-between gap-3 text-left"
+        onClick={() => items.length > 0 && setExpanded((v) => !v)}
+      >
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <PlugZap className="w-3.5 h-3.5 text-gray-600 dark:text-gray-500 flex-shrink-0" />
           <span className="font-mono text-sm text-gray-900 dark:text-gray-100 truncate">{p.name}</span>
@@ -1325,10 +1353,33 @@ function PluginContribRow({
             </span>
           )}
         </div>
-        <span className="text-[11px] font-medium px-2 py-1 rounded-md border border-border bg-surface-1 text-gray-700 dark:text-gray-300 flex-shrink-0 whitespace-nowrap">
-          {labelMap[kind]}
-        </span>
-      </div>
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <span className="text-[11px] font-medium px-2 py-1 rounded-md border border-border bg-surface-1 text-gray-700 dark:text-gray-300 whitespace-nowrap">
+            {labelMap[kind]}
+          </span>
+          {items.length > 0 && (
+            <ChevronDown className={`w-3.5 h-3.5 text-gray-500 transition-transform ${expanded ? "rotate-180" : ""}`} />
+          )}
+        </div>
+      </button>
+      {expanded && items.length > 0 && (
+        <div className="border-t border-border divide-y divide-border">
+          {items.map((item) => (
+            <div key={item.name} className="px-4 py-3">
+              <div className="flex items-center gap-2 mb-0.5">
+                <Slash className="w-3 h-3 text-gray-500 flex-shrink-0" />
+                <span className="font-mono text-sm text-gray-900 dark:text-gray-100">{item.name}</span>
+              </div>
+              {(item.description || item.preview) && (
+                <p className="mt-1 text-xs text-gray-600 dark:text-gray-400 leading-relaxed line-clamp-2 pl-5">
+                  {item.description || item.preview.replace(/^#+\s.*\n/, "").trim().slice(0, 200)}
+                </p>
+              )}
+              <p className="mt-1 text-[10px] text-gray-500 dark:text-gray-600 font-mono truncate pl-5">{item.file}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

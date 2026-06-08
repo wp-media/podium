@@ -2,7 +2,7 @@
  * @file highlight.test.ts
  * @description Unit tests for the syntax highlighter used by the conversation viewer.
  * Ensures token classification stays stable for languages we actually render.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { describe, it, expect } from "vitest";

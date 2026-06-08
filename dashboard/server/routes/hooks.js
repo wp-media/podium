@@ -1,6 +1,6 @@
 /**
  * @file Express router for handling incoming hook events from Claude CLI. It processes various hook types (PreToolUse, PostToolUse, Stop, SubagentStop, SessionStart, SessionEnd, Notification), updates session and agent states accordingly in the database, extracts token usage from transcripts, detects compaction events, and broadcasts updates to connected clients via WebSocket.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { Router } = require("express");
@@ -12,6 +12,167 @@ const TranscriptCache = require("../lib/transcript-cache");
 const { scanAndImportSubagents } = require("../../scripts/import-history");
 
 const router = Router();
+
+// ── Bash output parsers ────────────────────────────────────────────────────
+
+/**
+ * Parse PHPUnit output.
+ * Matches: "Tests: 47, Assertions: 123, Failures: 2" or "OK (47 tests, 123 assertions)"
+ * @param {string} output
+ * @returns {{ type: 'phpunit', tests: number, assertions: number, failures: number, errors: number, passed: boolean } | null}
+ */
+function parsePhpUnit(output) {
+  if (!output || typeof output !== "string") return null;
+
+  // "OK (47 tests, 123 assertions)"
+  const okMatch = output.match(/OK\s*\(\s*(\d+)\s*tests?,\s*(\d+)\s*assertions?\s*\)/i);
+  if (okMatch) {
+    return {
+      type: "phpunit",
+      tests: parseInt(okMatch[1], 10),
+      assertions: parseInt(okMatch[2], 10),
+      failures: 0,
+      errors: 0,
+      passed: true,
+    };
+  }
+
+  // "Tests: 47, Assertions: 123, Failures: 2, Errors: 1"
+  const summaryMatch = output.match(/Tests:\s*(\d+)/i);
+  if (summaryMatch) {
+    const tests = parseInt(summaryMatch[1], 10);
+    const assertMatch = output.match(/Assertions:\s*(\d+)/i);
+    const failMatch = output.match(/Failures:\s*(\d+)/i);
+    const errMatch = output.match(/Errors:\s*(\d+)/i);
+    const assertions = assertMatch ? parseInt(assertMatch[1], 10) : 0;
+    const failures = failMatch ? parseInt(failMatch[1], 10) : 0;
+    const errors = errMatch ? parseInt(errMatch[1], 10) : 0;
+    return {
+      type: "phpunit",
+      tests,
+      assertions,
+      failures,
+      errors,
+      passed: failures === 0 && errors === 0,
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Parse PHPCS output.
+ * Matches: "FOUND N ERRORS AND N WARNINGS AFFECTING N LINES" or similar
+ * @param {string} output
+ * @returns {{ type: 'phpcs', errors: number, warnings: number } | null}
+ */
+function parsePhpcs(output) {
+  if (!output || typeof output !== "string") return null;
+
+  // "FOUND 3 ERRORS AND 2 WARNINGS AFFECTING 4 LINES"
+  const foundMatch = output.match(/FOUND\s+(\d+)\s+ERRORS?\s+AND\s+(\d+)\s+WARNINGS?/i);
+  if (foundMatch) {
+    return {
+      type: "phpcs",
+      errors: parseInt(foundMatch[1], 10),
+      warnings: parseInt(foundMatch[2], 10),
+    };
+  }
+
+  // "FOUND 3 ERRORS AFFECTING 4 LINES" (no warnings)
+  const errOnlyMatch = output.match(/FOUND\s+(\d+)\s+ERRORS?\s+AFFECTING/i);
+  if (errOnlyMatch) {
+    return {
+      type: "phpcs",
+      errors: parseInt(errOnlyMatch[1], 10),
+      warnings: 0,
+    };
+  }
+
+  // "No errors detected" / "No violations found"
+  if (/no (errors?|violations?)\s+(detected|found)/i.test(output)) {
+    return { type: "phpcs", errors: 0, warnings: 0 };
+  }
+
+  return null;
+}
+
+/**
+ * Extract first GitHub PR URL from output.
+ * @param {string} output
+ * @returns {string | null}
+ */
+function extractPrUrl(output) {
+  if (!output || typeof output !== "string") return null;
+  const match = output.match(/https:\/\/github\.com\/[^\s/]+\/[^\s/]+\/pull\/\d+/);
+  return match ? match[0] : null;
+}
+
+/**
+ * Parse git diff --stat last line.
+ * Matches: "N files changed, N insertions(+), N deletions(-)"
+ * @param {string} output
+ * @returns {{ type: 'git_stat', files_changed: number, insertions: number, deletions: number } | null}
+ */
+function parseGitStat(output) {
+  if (!output || typeof output !== "string") return null;
+  // Match the summary line (could be anywhere in output)
+  const match = output.match(/(\d+)\s+files?\s+changed(?:,\s*(\d+)\s+insertions?\(\+\))?(?:,\s*(\d+)\s+deletions?\(-\))?/);
+  if (match) {
+    return {
+      type: "git_stat",
+      files_changed: parseInt(match[1], 10),
+      insertions: match[2] ? parseInt(match[2], 10) : 0,
+      deletions: match[3] ? parseInt(match[3], 10) : 0,
+    };
+  }
+  return null;
+}
+
+// ── Cost spike tracking ────────────────────────────────────────────────────
+
+/** Sessions that have already triggered a cost spike alert (module-level, cleared on SessionEnd/Stop) */
+const costSpikeAlertsSet = new Set();
+
+/** Sessions that have been notified about being stuck */
+const stuckAgentAlertsSet = new Set();
+
+/**
+ * Calculate session total cost using model_pricing table.
+ * @param {string} sessionId
+ * @returns {number} total cost in USD
+ */
+function calculateSessionCost(sessionId) {
+  try {
+    const tokenRows = db
+      .prepare(
+        `SELECT model,
+          input_tokens + baseline_input as input_tokens,
+          output_tokens + baseline_output as output_tokens,
+          cache_read_tokens + baseline_cache_read as cache_read_tokens,
+          cache_write_tokens + baseline_cache_write as cache_write_tokens
+         FROM token_usage WHERE session_id = ?`
+      )
+      .all(sessionId);
+    if (!tokenRows || tokenRows.length === 0) return 0;
+
+    const rules = stmts.listPricing.all();
+    let totalCost = 0;
+    for (const t of tokenRows) {
+      // Find matching pricing rule
+      const rule = rules.find((r) => t.model && t.model.toLowerCase().startsWith(r.model_pattern.replace(/%$/, "").toLowerCase()));
+      if (!rule) continue;
+      totalCost +=
+        (t.input_tokens / 1_000_000) * rule.input_per_mtok +
+        (t.output_tokens / 1_000_000) * rule.output_per_mtok +
+        (t.cache_read_tokens / 1_000_000) * rule.cache_read_per_mtok +
+        (t.cache_write_tokens / 1_000_000) * rule.cache_write_per_mtok;
+    }
+    return totalCost;
+  } catch {
+    return 0;
+  }
+}
 
 // Shared cache instance — reused by periodic compaction scanner via router.transcriptCache
 const transcriptCache = new TranscriptCache();
@@ -197,7 +358,17 @@ const processEvent = db.transaction((hookType, data) => {
           "working",
           input.prompt ? input.prompt.slice(0, 500) : null,
           parentId,
-          input.metadata ? JSON.stringify(input.metadata) : null
+          JSON.stringify({
+            ...(input.metadata || {}),
+            // Store the tool_use_id so scanAndImportSubagents can link the
+            // JSONL transcript (which carries toolUseId in its meta.json)
+            // to this live agent record — even when multiple subagents of
+            // the same type run concurrently.
+            spawn_tool_use_id: data.tool_use_id || null,
+            // Store the requested model so AgentCard can display it correctly
+            // instead of inheriting the parent session model.
+            model: input.model || null,
+          })
         );
         broadcast("agent_created", stmts.getAgent.get(subId));
         agentId = subId;
@@ -258,6 +429,59 @@ const processEvent = db.transaction((hookType, data) => {
         stmts.updateAgent.run(null, null, null, null, null, null, mainAgentId);
         broadcast("agent_updated", stmts.getAgent.get(mainAgentId));
       }
+
+      // ── Structured Bash output parsing ──────────────────────────────────
+      // Parse tool_response for signals when the Bash tool is used.
+      // Results are merged into data before JSON serialisation so they are
+      // queryable alongside the raw output without a separate table.
+      if (toolName === "Bash") {
+        const toolResponse = data.tool_response;
+        if (toolResponse && typeof toolResponse === "string") {
+          // Truncate output_preview to 2000 chars for storage (full output in data.tool_response)
+          if (toolResponse.length > 2000) {
+            data.output_preview = toolResponse.slice(0, 2000);
+          }
+
+          const parsed = {};
+
+          const phpunit = parsePhpUnit(toolResponse);
+          if (phpunit) parsed.phpunit = phpunit;
+
+          const phpcs = parsePhpcs(toolResponse);
+          if (phpcs) parsed.phpcs = phpcs;
+
+          const prUrl = extractPrUrl(toolResponse);
+          if (prUrl) {
+            parsed.github_pr_url = prUrl;
+            // Persist PR URL on the session row (only if not already set)
+            try {
+              db.prepare(
+                "UPDATE sessions SET github_pr_url = ? WHERE id = ? AND github_pr_url IS NULL"
+              ).run(prUrl, sessionId);
+            } catch {
+              // Column may not exist yet (migration runs below at module load)
+            }
+          }
+
+          const gitStat = parseGitStat(toolResponse);
+          if (gitStat) parsed.git_stat = gitStat;
+
+          if (Object.keys(parsed).length > 0) {
+            data.bash_parsed = parsed;
+          }
+        }
+      }
+
+      // Build a richer summary from tool_response when available.
+      // Truncate at 500 chars (increased from 120).
+      const responseText =
+        typeof data.tool_response === "string" ? data.tool_response.trim() : null;
+      if (responseText) {
+        const firstLine = responseText.split("\n")[0].trim();
+        if (firstLine) {
+          summary = `Tool completed: ${toolName} — ${firstLine.slice(0, 500)}`;
+        }
+      }
       break;
     }
 
@@ -268,6 +492,10 @@ const processEvent = db.transaction((hookType, data) => {
         data.stop_reason === "error"
           ? `Error in ${sessionLabel}`
           : `${sessionLabel} — ready for input`;
+
+      // Clear stuck-agent tracking when the session produces a new event —
+      // stuck detection uses updated_at staleness, so any new event resets it.
+      stuckAgentAlertsSet.delete(sessionId);
 
       // Stop means Claude finished its turn, NOT that the session is closed.
       // Session stays active — user can still send more messages.
@@ -420,6 +648,10 @@ const processEvent = db.transaction((hookType, data) => {
       // Session is terminating — drop any waiting flag so the row lands in
       // its final column without a leftover yellow overlay.
       clearAwaitingInput(sessionId, mainAgentId, false);
+
+      // Clear alert tracking so sessions can be reused cleanly (e.g. resume).
+      costSpikeAlertsSet.delete(sessionId);
+      stuckAgentAlertsSet.delete(sessionId);
 
       // SessionEnd is the definitive signal that the CLI process exited.
       // If the session was in error state, keep it there — the user never
@@ -626,6 +858,17 @@ const processEvent = db.transaction((hookType, data) => {
             tokens.cacheWrite
           );
         }
+
+        // ── Cost spike detection ────────────────────────────────────────
+        // After updating token usage, check if the session crossed $1.00 USD.
+        // Only fire once per session (tracked in costSpikeAlertsSet).
+        if (!costSpikeAlertsSet.has(sessionId)) {
+          const cost = calculateSessionCost(sessionId);
+          if (cost > 1.0) {
+            costSpikeAlertsSet.add(sessionId);
+            broadcast("cost_spike", { session_id: sessionId, cost });
+          }
+        }
       }
 
       // Register API errors from transcript (quota limits, rate limits, overloaded, etc.)
@@ -738,6 +981,10 @@ const processEvent = db.transaction((hookType, data) => {
   if (hookType === "SessionEnd" && data.transcript_path) {
     transcriptCache.invalidate(data.transcript_path);
   }
+
+  // Any new event means the session is no longer stuck — clear stuck alert so
+  // it can fire again if the session stalls again later.
+  stuckAgentAlertsSet.delete(sessionId);
 
   // Bump session updated_at on every event
   stmts.touchSession.run(sessionId);
@@ -927,6 +1174,38 @@ function watchdogCheck() {
 const watchdogTimer = setInterval(watchdogCheck, WATCHDOG_INTERVAL_MS);
 // Don't keep the process alive just for the watchdog
 if (watchdogTimer.unref) watchdogTimer.unref();
+
+// ── Stuck agent detection ──────────────────────────────────────────────────
+// Every 60 seconds, find active sessions where updated_at is >5 minutes old.
+// Broadcasts "agent_stuck" once per session (tracked in stuckAgentAlertsSet).
+// Cleared when the session gets new events (on Stop/SubagentStop).
+const STUCK_INTERVAL_MS = 60_000;
+const STUCK_THRESHOLD_MINUTES = 5;
+
+function stuckAgentCheck() {
+  try {
+    const cutoff = new Date(Date.now() - STUCK_THRESHOLD_MINUTES * 60_000).toISOString();
+    const stuckSessions = db
+      .prepare(
+        `SELECT id, updated_at FROM sessions
+         WHERE status = 'active' AND updated_at < ? AND updated_at != ''`
+      )
+      .all(cutoff);
+
+    for (const sess of stuckSessions) {
+      if (stuckAgentAlertsSet.has(sess.id)) continue;
+      const updatedAt = new Date(sess.updated_at).getTime();
+      const minutesStuck = Math.floor((Date.now() - updatedAt) / 60_000);
+      stuckAgentAlertsSet.add(sess.id);
+      broadcast("agent_stuck", { session_id: sess.id, minutes_stuck: minutesStuck });
+    }
+  } catch (err) {
+    console.warn("[STUCK-CHECK] Error:", err?.message || err);
+  }
+}
+
+const stuckTimer = setInterval(stuckAgentCheck, STUCK_INTERVAL_MS);
+if (stuckTimer.unref) stuckTimer.unref();
 
 router.transcriptCache = transcriptCache;
 router.watchdogCheck = watchdogCheck;

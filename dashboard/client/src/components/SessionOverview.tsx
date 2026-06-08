@@ -5,7 +5,7 @@
  * compactions, duration), top-tool usage bars, subagent-type breakdown, and a token
  * flow strip. Live-refreshes on `new_event` (debounced) so counters track the running
  * session without spamming the backend.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -70,7 +70,7 @@ function StatTile({
   }[tone];
 
   return (
-    <div className={`rounded-lg border px-3 py-2.5 ${palette}`}>
+    <div className={`card rounded-lg px-3 py-2.5 ${palette}`}>
       <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-gray-700 dark:text-gray-500">
         <span className={iconTone}>{icon}</span>
         {label}
@@ -287,7 +287,7 @@ export function SessionOverview({ session, agents, children }: SessionOverviewPr
           label="Errors"
           value={stats.error_count.toLocaleString()}
           icon={<AlertTriangle className="w-3 h-3" />}
-          tone={stats.error_count > 0 ? "rose" : "default"}
+          tone="rose"
         />
         <StatTile
           label="Duration"
@@ -298,10 +298,13 @@ export function SessionOverview({ session, agents, children }: SessionOverviewPr
         />
       </div>
 
+      {/* Agents list — injected by the parent page (SessionDetail) */}
+      {children}
+
       {/* Two-column layout: tools + subagent breakdown */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Tool usage */}
-        <div className="lg:col-span-2 rounded-lg border border-surface-3 bg-surface-2/60 p-3.5">
+        <div className="lg:col-span-2 card p-3.5">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <Wrench className="w-3.5 h-3.5 text-indigo-700 dark:text-indigo-400" />
@@ -339,7 +342,7 @@ export function SessionOverview({ session, agents, children }: SessionOverviewPr
          * render it alongside any real subagent types, distinguished by an
          * amber bar (matching the compaction iconography elsewhere in the
          * app) instead of cyan. */}
-        <div className="rounded-lg border border-surface-3 bg-surface-2/60 p-3.5">
+        <div className="card p-3.5">
           {(() => {
             type SubRow = { key: string; label: string; count: number; isCompaction: boolean };
             const rows: SubRow[] = stats.subagent_types.map((s) => ({
@@ -409,7 +412,7 @@ export function SessionOverview({ session, agents, children }: SessionOverviewPr
 
       {/* Token flow strip */}
       {totalTokens > 0 && (
-        <div className="rounded-lg border border-surface-3 bg-surface-2/60 p-3.5">
+        <div className="card p-3.5">
           <div className="flex items-center justify-between mb-2.5">
             <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider flex items-center gap-1.5">
               <Coins className="w-3.5 h-3.5 text-amber-700 dark:text-amber-400" />
@@ -421,12 +424,9 @@ export function SessionOverview({ session, agents, children }: SessionOverviewPr
         </div>
       )}
 
-      {/* Agents list — injected by the parent page (SessionDetail) */}
-      {children}
-
       {/* Event-type breakdown — secondary, only top 6 */}
       {stats.events_by_type.length > 0 && (
-        <div className="rounded-lg border border-surface-3 bg-surface-2/60 p-3.5">
+        <div className="card p-3.5">
           <h3 className="text-xs font-semibold text-gray-700 dark:text-gray-300 uppercase tracking-wider mb-3 flex items-center gap-1.5">
             <Activity className="w-3.5 h-3.5 text-gray-600 dark:text-gray-400" />
             Event mix

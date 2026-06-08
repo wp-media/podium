@@ -1,0 +1,43 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="b4bg" cx="50%" cy="42%" r="75%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#141520"/>
+      <stop offset="100%" stop-color="#0A0B12"/>
+    </radialGradient>
+    <linearGradient id="b4gold" x1="80" y1="88" x2="432" y2="424" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <filter id="b4glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#b4bg)"/>
+
+  <!-- glow under corner marks -->
+  <g stroke="url(#b4gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="miter" fill="none" opacity="0.3" filter="url(#b4glow)">
+    <polyline points="236,108 256,88 276,108"/>
+    <polyline points="412,236 432,256 412,276"/>
+    <polyline points="276,404 256,424 236,404"/>
+    <polyline points="100,276 80,256 100,236"/>
+  </g>
+
+  <!-- 4 corner marks implying a diamond -->
+  <g stroke="url(#b4gold)" stroke-width="5" stroke-linecap="round" stroke-linejoin="miter" fill="none">
+    <polyline points="236,108 256,88 276,108"/>
+    <polyline points="412,236 432,256 412,276"/>
+    <polyline points="276,404 256,424 236,404"/>
+    <polyline points="100,276 80,256 100,236"/>
+  </g>
+
+  <!-- white eye centre -->
+  <path d="M 185,256 C 210,218 302,218 327,256 C 302,294 210,294 185,256 Z"
+        fill="none" stroke="#FFFFFF" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- dark iris -->
+  <circle cx="256" cy="256" r="38" fill="#0A0B12"/>
+  <!-- gold pupil accent -->
+  <circle cx="256" cy="256" r="13" fill="url(#b4gold)"/>
+</svg>

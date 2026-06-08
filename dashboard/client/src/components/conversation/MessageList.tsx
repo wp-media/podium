@@ -5,7 +5,7 @@
  * blocks, inline ToolCallBlocks for tool_use / tool_result pairs, and
  * MarkdownContent for prose. Used by ConversationView as the main body of
  * the Conversation tab on the Session detail page.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 import { useState, useMemo } from "react";
 import {
@@ -196,9 +196,65 @@ function CollapsibleBlock({
   );
 }
 
-export function MessageList({ messages, loading }: MessageListProps) {
-  const [expandedThinking, setExpandedThinking] = useState<Set<number>>(() => new Set());
+/** Default number of characters shown before the "Show more" cut-off. */
+const THINKING_PREVIEW_CHARS = 500;
 
+/**
+ * Collapsible extended-thinking block. The full text is never truncated — the
+ * collapsed state shows a preview slice and a "Show more" control, while the
+ * expanded state renders the entire content inside a scrollable, height-capped
+ * container so very long reasoning dumps stay on the page.
+ */
+export function ThinkingBlock({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const isLong = text.length > THINKING_PREVIEW_CHARS;
+  const preview = isLong ? text.slice(0, THINKING_PREVIEW_CHARS) : text;
+
+  return (
+    <div className="rounded-lg border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/[0.06] overflow-hidden">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-indigo-100/60 dark:hover:bg-indigo-500/10 transition-colors"
+      >
+        <ChevronRight
+          className={`w-3.5 h-3.5 text-indigo-400 dark:text-indigo-400/70 transition-transform duration-150 ${
+            open ? "rotate-90" : ""
+          }`}
+        />
+        <Brain className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+        <span className="text-xs italic text-indigo-700 dark:text-indigo-300 font-medium">
+          Thinking
+        </span>
+        <span className="text-[10px] text-indigo-500/70 dark:text-indigo-400/60 font-mono ml-auto">
+          {text.length.toLocaleString()} chars
+        </span>
+      </button>
+      <div className="border-t border-indigo-200 dark:border-indigo-500/20 px-3 py-2 italic text-indigo-900/80 dark:text-indigo-100/70">
+        {open ? (
+          <div className="overflow-y-auto max-h-[600px]">
+            <div className="whitespace-pre-wrap break-words leading-relaxed">
+              <MarkdownContent text={text} dense />
+            </div>
+          </div>
+        ) : (
+          <div className="whitespace-pre-wrap break-words leading-relaxed">
+            <MarkdownContent text={preview} dense />
+          </div>
+        )}
+        {isLong && (
+          <button
+            onClick={() => setOpen((v) => !v)}
+            className="mt-1 text-[11px] not-italic font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+          >
+            {open ? "Show less" : "Show more"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function MessageList({ messages, loading }: MessageListProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12 text-gray-700 dark:text-gray-500 text-sm">
@@ -344,44 +400,7 @@ export function MessageList({ messages, loading }: MessageListProps) {
                 }
 
                 if (block.type === "thinking" && block.text) {
-                  const thinkKey = idx * 100 + bIdx;
-                  const isExpanded = expandedThinking.has(thinkKey);
-                  return (
-                    <div
-                      key={bIdx}
-                      className="rounded-lg border border-gray-200 dark:border-border bg-gray-50 dark:bg-surface-1 overflow-hidden"
-                    >
-                      <button
-                        onClick={() =>
-                          setExpandedThinking((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(thinkKey)) next.delete(thinkKey);
-                            else next.add(thinkKey);
-                            return next;
-                          })
-                        }
-                        className="w-full flex items-center gap-2 px-3 py-1.5 text-left hover:bg-gray-100 dark:hover:bg-surface-2 transition-colors"
-                      >
-                        <ChevronRight
-                          className={`w-3.5 h-3.5 text-gray-400 dark:text-gray-500 transition-transform duration-150 ${
-                            isExpanded ? "rotate-90" : ""
-                          }`}
-                        />
-                        <Brain className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400" />
-                        <span className="text-xs italic text-gray-600 dark:text-gray-400 font-medium">Thinking</span>
-                        {!isExpanded && (
-                          <span className="text-[10px] text-gray-500 dark:text-gray-500 font-mono ml-auto">
-                            {block.text.length.toLocaleString()} chars
-                          </span>
-                        )}
-                      </button>
-                      {isExpanded && (
-                        <div className="border-t border-gray-200 dark:border-border px-3 py-2 italic text-gray-600 dark:text-gray-400">
-                          <MarkdownContent text={block.text} dense />
-                        </div>
-                      )}
-                    </div>
-                  );
+                  return <ThinkingBlock key={bIdx} text={block.text} />;
                 }
 
                 if (block.type === "tool_use") {

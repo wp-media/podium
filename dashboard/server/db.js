@@ -1,6 +1,6 @@
 /**
  * @file Database setup and access layer using SQLite for storing sessions, agents, events, token usage, and model pricing. Handles schema creation, migrations, and provides prepared statements for all database operations.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 let Database;
@@ -308,6 +308,16 @@ db.exec(
    ON sessions(status, transcript_path)
    WHERE status='active' AND transcript_path IS NOT NULL`
 );
+
+// Migrate: add github_pr_url to sessions.
+// Populated by hooks.js when a Bash tool response contains a GitHub PR URL.
+// Guarded by try/catch so it is a no-op on existing databases that already
+// have the column.
+try {
+  db.prepare("SELECT github_pr_url FROM sessions LIMIT 1").get();
+} catch {
+  db.prepare("ALTER TABLE sessions ADD COLUMN github_pr_url TEXT").run();
+}
 
 // Migrate: replace legacy idle/connected agent statuses with waiting/working
 // and update the CHECK constraint to the 4-status model.

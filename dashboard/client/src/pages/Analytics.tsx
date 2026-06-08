@@ -1,10 +1,11 @@
 /**
  * @file Analytics.tsx
  * @description Provides a comprehensive analytics dashboard for monitoring Claude Code sessions, agents, token usage, and events in real-time. Features include an activity heatmap, token distribution charts, session outcome breakdowns, and more, all with interactive tooltips and live updates via WebSocket.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useState, useCallback, useMemo, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import {
   RefreshCw,
@@ -33,7 +34,7 @@ function ChartTooltip({ x, y, children }: { x: number; y: number; children: Reac
   const nearRight = x > window.innerWidth - 200;
   return (
     <div
-      className="fixed z-50 px-2.5 py-1.5 text-xs bg-white dark:bg-surface-1 border border-gray-200 dark:border-border shadow-lg rounded-lg text-gray-900 dark:text-white pointer-events-none whitespace-nowrap"
+      className="fixed z-[9999] px-2.5 py-1.5 text-xs bg-white dark:bg-surface-1 border border-gray-200 dark:border-border shadow-lg rounded-lg text-gray-900 dark:text-white pointer-events-none whitespace-nowrap"
       style={{
         left: nearRight ? x - 14 : x + 14,
         top: y - 10,
@@ -60,11 +61,14 @@ function useTooltip() {
   };
   const hide = () => setTooltip(null);
 
-  const node = tooltip ? (
-    <ChartTooltip x={tooltip.x} y={tooltip.y}>
-      {tooltip.content}
-    </ChartTooltip>
-  ) : null;
+  const node = tooltip
+    ? createPortal(
+        <ChartTooltip x={tooltip.x} y={tooltip.y}>
+          {tooltip.content}
+        </ChartTooltip>,
+        document.body
+      )
+    : null;
 
   return { show, move, hide, node };
 }
@@ -849,7 +853,7 @@ export function Analytics() {
   return (
     <div className="animate-fade-in space-y-8">
       {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="page-header flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-3 mb-1">
             <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center flex-shrink-0">

@@ -1,7 +1,7 @@
 /**
  * @file Dashboard.tsx
  * @description Main dashboard page showing real-time stats, active agents, and recent activity feed for Claude Code sessions.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useState, useCallback, useSyncExternalStore, useMemo, useRef } from "react";
@@ -28,6 +28,9 @@ import {
   ShieldCheck,
   Database,
   Search,
+  X,
+  Target,
+  Bell,
 } from "lucide-react";
 import {
   DndContext,
@@ -1074,6 +1077,15 @@ export function Dashboard() {
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
 
+  // Notification discoverability banner — shown once until dismissed
+  const [notifBannerVisible, setNotifBannerVisible] = useState(
+    () => localStorage.getItem("podium-notif-banner-dismissed") === null
+  );
+  function dismissNotifBanner() {
+    localStorage.setItem("podium-notif-banner-dismissed", "1");
+    setNotifBannerVisible(false);
+  }
+
   // Dynamic item counts based on available container height
   const agentsContainerRef = useRef<HTMLDivElement>(null);
   const activityContainerRef = useRef<HTMLDivElement>(null);
@@ -1104,19 +1116,26 @@ export function Dashboard() {
     return () => ro.disconnect();
   }, [activeTab]);
 
+  const loadEvents = useCallback(async () => {
+    try {
+      const eventsRes = await api.events.list({ limit: 30 });
+      setRecentEvents(eventsRes.events);
+    } catch {
+      // non-fatal
+    }
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const [statsRes, workingRes, waitingRes, eventsRes, costRes] = await Promise.all([
+      const [statsRes, workingRes, waitingRes, costRes] = await Promise.all([
         api.stats.get(),
         api.agents.list({ status: "working", limit: 20 }),
         api.agents.list({ status: "waiting", limit: 20 }),
-        api.events.list({ limit: 30 }),
         api.pricing.totalCost(),
       ]);
       setStats(statsRes);
       const active = [...workingRes.agents, ...waitingRes.agents];
       setActiveAgents(active);
-      setRecentEvents(eventsRes.events);
       setTotalCost(costRes.total_cost);
       setError(null);
 
@@ -1136,9 +1155,10 @@ export function Dashboard() {
 
   useEffect(() => {
     load();
-    const interval = setInterval(load, 10000);
+    loadEvents();
+    const interval = setInterval(() => { load(); loadEvents(); }, 10000);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [load, loadEvents]);
 
   // Auto-expand agents with active subagents (walk up the full parent chain)
   useEffect(() => {
@@ -1243,7 +1263,7 @@ export function Dashboard() {
 
   return (
     <div className="flex flex-col gap-8 animate-fade-in min-h-[calc(100vh-4rem)]">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="page-header flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
             <LayoutDashboard className="w-4.5 h-4.5 text-accent" />
@@ -1295,6 +1315,33 @@ export function Dashboard() {
           </button>
         </div>
       </div>
+
+      {/* Notification discoverability banner — shown once, dismissed to localStorage */}
+      {notifBannerVisible && (
+        <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-xl bg-blue-50 dark:bg-blue-500/10 border border-blue-200 dark:border-blue-500/20 text-sm">
+          <div className="flex items-center gap-2 text-blue-800 dark:text-blue-300 min-w-0">
+            <Bell className="w-4 h-4 flex-shrink-0 text-blue-500 dark:text-blue-400" />
+            <span className="truncate">
+              Get alerts when sessions fail or complete — Enable notifications in Settings
+            </span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              onClick={() => navigate("/settings")}
+              className="text-xs font-medium text-blue-700 dark:text-blue-400 hover:text-blue-900 dark:hover:text-blue-200 underline underline-offset-2 transition-colors cursor-pointer"
+            >
+              Enable
+            </button>
+            <button
+              onClick={dismissNotifBanner}
+              aria-label="Dismiss"
+              className="p-0.5 text-blue-500 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-200 transition-colors cursor-pointer"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {activeTab === "monitor" ? (
         <div className="flex-1 flex flex-col gap-8 min-h-0">
@@ -1373,7 +1420,26 @@ export function Dashboard() {
                   {t("viewBoard")} <ArrowRight className="w-3 h-3" />
                 </button>
               </div>
-              {activeAgents.length === 0 ? (
+              {activeAgents.length === 0 && stats !== null && stats.total_sessions === 0 ? (
+                /* First-run onboarding card — shown only when stats have loaded
+                   and there are genuinely zero sessions ever recorded. */
+                <div className="flex flex-col items-center justify-center gap-3 py-10 px-6 rounded-xl border border-dashed border-border bg-surface-2/40 text-center">
+                  <div className="w-10 h-10 rounded-xl bg-accent/15 flex items-center justify-center">
+                    <Target className="w-5 h-5 text-accent" />
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-800 dark:text-gray-100 mb-1">
+                      Podium is ready
+                    </p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
+                      Start a Claude Code session in any hooked project — it will appear here automatically.
+                    </p>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 font-mono bg-surface-3 px-3 py-1.5 rounded-lg border border-border">
+                    Not hooked yet? Run: <span className="text-accent">/podium setup</span>
+                  </p>
+                </div>
+              ) : activeAgents.length === 0 ? (
                 <EmptyState icon={Bot} title={t("noAgents")} description={t("noAgentsDesc")} />
               ) : (
                 <div className="space-y-2">

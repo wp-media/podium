@@ -4,7 +4,7 @@
  * Mirrors AgentCard's information hierarchy (icon · title · meta line) but
  * surfaces session-relevant fields: model, agent count, cost, last activity.
  * Clicking the card navigates to the session detail page.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
@@ -45,12 +45,12 @@ export function SessionCard({ session, onClick }: SessionCardProps) {
   return (
     <div
       onClick={handleClick}
-      className={`group relative p-4 cursor-pointer animate-fade-in overflow-hidden rounded-xl bg-white dark:bg-surface-2 border border-gray-100 dark:border-border shadow-sm hover:shadow-md dark:shadow-none hover:ring-1 hover:ring-black/5 dark:hover:ring-white/5 transition-all duration-200 ${
-        isWaiting
-          ? "border-l-2 border-l-amber-400 dark:border-l-amber-500/60"
-          : isActive
-            ? "border-l-2 border-l-emerald-500"
-            : ""
+      className={`group relative p-4 cursor-pointer animate-fade-in overflow-hidden card transition-all duration-200 ${
+        isActive
+          ? "card-active"
+          : isWaiting
+            ? "overflow-hidden card-waiting card-hover"
+            : "overflow-hidden card-hover"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-3 min-w-0">

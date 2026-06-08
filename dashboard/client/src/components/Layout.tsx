@@ -1,7 +1,7 @@
 /**
  * @file Layout.tsx
  * @description Defines the Layout component that serves as the main structure for the application, including a collapsible sidebar and a main content area. The sidebar's collapsed state is stored in localStorage to persist user preferences across sessions. The component uses React Router's Outlet to render nested routes within the main content area and adjusts its layout based on the sidebar's state.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useState, useCallback } from "react";
@@ -28,13 +28,56 @@ export function Layout({ wsConnected }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-surface-0 transition-colors duration-200">
+      {/* Aurora background — slow-drifting gradient orbs that bleed through frosted glass */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden" style={{ zIndex: 0 }}>
+        <div
+          className="aurora-orb absolute rounded-full"
+          style={{
+            width: "70vw",
+            height: "70vw",
+            top: "-20%",
+            right: "-10%",
+            background: "radial-gradient(circle at center, var(--orb-gold) 0%, transparent 65%)",
+            filter: "blur(45px)",
+            animation: "orb-float-1 42s ease-in-out infinite",
+            willChange: "transform",
+          }}
+        />
+        <div
+          className="aurora-orb absolute rounded-full"
+          style={{
+            width: "62vw",
+            height: "62vw",
+            bottom: "-18%",
+            left: "-8%",
+            background: "radial-gradient(circle at center, var(--orb-indigo) 0%, transparent 65%)",
+            filter: "blur(55px)",
+            animation: "orb-float-2 54s ease-in-out infinite",
+            willChange: "transform",
+          }}
+        />
+        <div
+          className="aurora-orb absolute rounded-full"
+          style={{
+            width: "48vw",
+            height: "48vw",
+            top: "30%",
+            left: "26%",
+            background: "radial-gradient(circle at center, var(--orb-amber) 0%, transparent 65%)",
+            filter: "blur(70px)",
+            animation: "orb-float-3 66s ease-in-out infinite",
+            willChange: "transform",
+          }}
+        />
+      </div>
       <UpdateNotifier />
       <Sidebar wsConnected={wsConnected} collapsed={collapsed} onToggle={toggle} />
       <main
-        className="min-h-screen min-w-0 transition-[margin-left,width] duration-200"
+        className="relative min-h-screen min-w-0 transition-[margin-left,width] duration-200"
         style={{
           marginLeft: collapsed ? "4.25rem" : "15rem",
           width: collapsed ? "calc(100% - 4.25rem)" : "calc(100% - 15rem)",
+          zIndex: 1,
         }}
       >
         <div className="p-5 lg:p-6 max-w-full overflow-x-hidden">

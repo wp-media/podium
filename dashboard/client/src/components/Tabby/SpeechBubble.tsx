@@ -3,7 +3,7 @@
  * @description Transient speech bubble shown above the cat. Announces notable
  *   events to assistive tech via aria-live, and dismisses on click. Pure
  *   presentational — visibility/lifetime are owned by the brain hook.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 interface SpeechBubbleProps {

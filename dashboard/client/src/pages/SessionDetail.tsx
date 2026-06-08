@@ -4,6 +4,7 @@
  * @author Son Nguyen <hoangson091104@gmail.com>
  */
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -22,6 +23,15 @@ import {
   AlertCircle,
   Play,
   ExternalLink,
+  AlertTriangle,
+  Brain,
+  StickyNote,
+  Share2,
+  Download,
+  Link2,
+  Check,
+  Wrench,
+  FileEdit,
 } from "lucide-react";
 import { api } from "../lib/api";
 import { loadAdvancedMetrics } from "../lib/displaySettings";
@@ -58,9 +68,24 @@ import {
   timeAgo,
   formatModelName,
 } from "../lib/format";
-import type { Session, Agent, DashboardEvent, CostResult, TranscriptInfo } from "../lib/types";
+import type {
+  Session,
+  Agent,
+  DashboardEvent,
+  CostResult,
+  TranscriptInfo,
+} from "../lib/types";
 
-type DetailTab = "agents" | "conversation" | "timeline";
+type DetailTab = "agents" | "conversation" | "timeline" | "thinking";
+
+/** A single extended-thinking block extracted from a transcript, with the
+ * agent context and timestamp needed to render the Decision-log timeline. */
+interface ThinkingEntry {
+  transcriptId: string;
+  agentLabel: string;
+  text: string;
+  timestamp: string | null;
+}
 
 const EVENTS_INITIAL_BATCH = 50;
 const EVENTS_MORE_BATCH = 500;
@@ -102,6 +127,11 @@ export function SessionDetail() {
     return new Set<string>();
   });
   const [activeTab, setActiveTab] = useState<DetailTab>("agents");
+  // Tracks whether the user has manually picked a tab. Until they do, the smart
+  // default below may auto-switch to "conversation" for single-agent sessions.
+  const userChangedTab = useRef(false);
+  // One-shot guard so the smart default only fires the first time agents load.
+  const smartDefaultApplied = useRef(false);
   // Keep tabs mounted once visited so switching between them doesn't unmount/
   // remount their subtrees (which causes a perceptible flash on click).
   const [visitedTabs, setVisitedTabs] = useState<Set<DetailTab>>(() => new Set(["agents"]));
@@ -113,6 +143,23 @@ export function SessionDetail() {
   const [transcriptNotFound, setTranscriptNotFound] = useState(false);
   const notFoundTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [expandedEvents, setExpandedEvents] = useState<Set<number>>(() => new Set());
+
+  // Note-taking (localStorage) + share popover UI state.
+  const [annotation, setAnnotation] = useState("");
+  const [annotationOpen, setAnnotationOpen] = useState(false);
+  const annotationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showSummary, setShowSummary] = useState(false);
+  const sharePopoverRef = useRef<HTMLDivElement>(null);
+
+  // Wrap setActiveTab so any explicit tab click records intent and clears the
+  // transcript-not-found banner consistently across all tab buttons.
+  const selectTab = useCallback((tab: DetailTab) => {
+    userChangedTab.current = true;
+    setTranscriptNotFound(false);
+    setActiveTab(tab);
+  }, []);
 
   function toggleEvent(id: number) {
     setExpandedEvents((prev) => {
@@ -201,6 +248,95 @@ export function SessionDetail() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Smart default tab (Task 1): once agents first resolve, if this session has
+  // no subagents (only the main agent, or none), jump to the Conversation tab —
+  // but only when the user hasn't already picked a tab, and only once.
+  useEffect(() => {
+    if (loading || smartDefaultApplied.current) return;
+    smartDefaultApplied.current = true;
+    if (!userChangedTab.current && agents.length <= 1) {
+      setActiveTab("conversation");
+    }
+  }, [loading, agents.length]);
+
+  // Annotation: load any saved note for this session on mount / id change.
+  useEffect(() => {
+    if (!id) return;
+    try {
+      const saved = localStorage.getItem(`podium-annotation-${id}`);
+      setAnnotation(saved ?? "");
+      setAnnotationOpen(false);
+    } catch {
+      setAnnotation("");
+    }
+  }, [id]);
+
+  // Annotation: debounced persist (800ms) to localStorage.
+  const onAnnotationChange = useCallback(
+    (value: string) => {
+      setAnnotation(value);
+      if (annotationTimerRef.current) clearTimeout(annotationTimerRef.current);
+      annotationTimerRef.current = setTimeout(() => {
+        try {
+          if (id) localStorage.setItem(`podium-annotation-${id}`, value);
+        } catch {
+          // Non-fatal: storage may be full or disabled.
+        }
+      }, 800);
+    },
+    [id]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (annotationTimerRef.current) clearTimeout(annotationTimerRef.current);
+    };
+  }, []);
+
+  // Share popover: dismiss on outside click.
+  useEffect(() => {
+    if (!shareOpen) return;
+    const handler = (e: MouseEvent) => {
+      if (sharePopoverRef.current && !sharePopoverRef.current.contains(e.target as Node)) {
+        setShareOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [shareOpen]);
+
+  // Download the full session export as a JSON attachment.
+  const downloadSessionJson = useCallback(async () => {
+    if (!session) return;
+    try {
+      const response = await fetch(`/api/export/session/${session.id}`);
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `podium-session-${session.id.slice(0, 8)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Failed to export session:", err);
+    } finally {
+      setShareOpen(false);
+    }
+  }, [session]);
+
+  // Copy the current page URL and flash a transient "Copied!" confirmation.
+  const copySessionUrl = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch {
+      // Clipboard may be blocked (insecure context); fail silently.
+    } finally {
+      setShareOpen(false);
+    }
+  }, []);
 
   // Load transcripts list (for Agent → Conversation navigation ID mapping)
   useEffect(() => {
@@ -356,6 +492,47 @@ export function SessionDetail() {
     const map = new Map<number, string | null>();
     for (const e of events) map.set(e.id, projectFromEvent(e));
     return map;
+  }, [events]);
+
+  // Error count for the header chip + run summary. Mirrors the timeline's
+  // status mapping (statusFromEventType → "error" for error/APIError) and also
+  // catches PostToolUse events whose payload reports an error status.
+  const errorCount = useMemo(() => {
+    let n = 0;
+    for (const e of events) {
+      if (statusFromEventType(e.event_type) === "error") {
+        n++;
+        continue;
+      }
+      // PostToolUse can still represent a failed tool call — detect an error
+      // status embedded in the raw payload without a brittle full parse.
+      if (e.event_type === "PostToolUse" && e.data && /"is_error"\s*:\s*true/.test(e.data)) {
+        n++;
+      }
+    }
+    return n;
+  }, [events]);
+
+  // Run-summary stats (only meaningful once the session has finished).
+  const toolCallCount = useMemo(
+    () => events.filter((e) => e.event_type === "PreToolUse").length,
+    [events]
+  );
+
+  // Unique files touched by Edit / Write tool calls. The file path usually
+  // lives in the event summary (e.g. "Write path/to/file"); we pull the first
+  // path-like token out of it as a best-effort.
+  const filesChangedCount = useMemo(() => {
+    const files = new Set<string>();
+    for (const e of events) {
+      if (e.event_type !== "PreToolUse") continue;
+      const tool = e.tool_name || "";
+      if (tool !== "Edit" && tool !== "Write" && tool !== "MultiEdit") continue;
+      const summary = e.summary || "";
+      const match = summary.match(/(\/[^\s"]+|[\w.-]+\/[^\s"]+|[\w.-]+\.[A-Za-z0-9]+)/);
+      if (match) files.add(match[0]!);
+    }
+    return files.size;
   }, [events]);
 
   const loadEvents = useCallback(async () => {
@@ -528,6 +705,20 @@ export function SessionDetail() {
               {session.name || `${t("defaultName")}${session.id.slice(0, 8)}`}
             </h2>
             <SessionStatusBadge status={effectiveSessionStatus(session)} />
+            {errorCount > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  selectTab("timeline");
+                  setFilters({ ...EMPTY_FILTERS, status: ["error", "failed"] });
+                }}
+                title="Jump to the timeline filtered to errors"
+                className="inline-flex items-center gap-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border border-red-200 dark:border-red-800 px-2 py-0.5 rounded-full text-xs font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer"
+              >
+                <AlertTriangle className="w-3 h-3" />
+                {errorCount} {errorCount === 1 ? "error" : "errors"}
+              </button>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
             <span className="inline-flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-500 font-mono bg-surface-2 px-2 py-1 rounded">
@@ -561,10 +752,101 @@ export function SessionDetail() {
               <span className="font-mono truncate">{session.cwd}</span>
             </div>
           )}
+
+          {/* Collapsed annotation preview — one click reopens the editor. */}
+          {!annotationOpen && annotation.trim() && (
+            <button
+              type="button"
+              onClick={() => setAnnotationOpen(true)}
+              className="flex items-start gap-1.5 text-sm text-amber-800 dark:text-amber-200/80 mt-2 text-left hover:text-amber-900 dark:hover:text-amber-100 transition-colors"
+              title="Edit note"
+            >
+              <StickyNote className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-amber-500" />
+              <span className="italic truncate">{annotation.trim().slice(0, 80)}</span>
+            </button>
+          )}
+
+          {/* Expanded annotation editor — warm sticky-note tint. */}
+          {annotationOpen && (
+            <div className="mt-3 rounded-lg border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 p-2.5">
+              <div className="flex items-center gap-1.5 mb-1.5 text-[11px] font-medium uppercase tracking-wider text-amber-700 dark:text-amber-300/80">
+                <StickyNote className="w-3.5 h-3.5" />
+                Note
+                <button
+                  type="button"
+                  onClick={() => setAnnotationOpen(false)}
+                  className="ml-auto text-amber-600 dark:text-amber-400/70 hover:text-amber-800 dark:hover:text-amber-200 transition-colors normal-case font-normal"
+                >
+                  Hide
+                </button>
+              </div>
+              <textarea
+                rows={2}
+                value={annotation}
+                onChange={(e) => onAnnotationChange(e.target.value)}
+                placeholder="Add a note about this session..."
+                className="w-full resize-y bg-transparent text-sm text-amber-900 dark:text-amber-100 placeholder-amber-500/60 dark:placeholder-amber-300/40 focus:outline-none"
+              />
+            </div>
+          )}
         </div>
-        <button onClick={load} className="btn-ghost">
-          <RefreshCw className="w-4 h-4" />
-        </button>
+
+        {/* Header actions: note · share · refresh */}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            onClick={() => setAnnotationOpen((v) => !v)}
+            className="btn-ghost"
+            title={annotationOpen ? "Hide note" : "Add a note"}
+            aria-label="Toggle session note"
+          >
+            <StickyNote className="w-4 h-4" />
+          </button>
+
+          <div className="relative" ref={sharePopoverRef}>
+            <button
+              onClick={() => setShareOpen((v) => !v)}
+              className="btn-ghost"
+              title="Share or export"
+              aria-haspopup="menu"
+              aria-expanded={shareOpen}
+            >
+              <Share2 className="w-4 h-4" />
+            </button>
+            {shareOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 mt-1 z-30 min-w-[220px] bg-white dark:bg-surface-1 border border-gray-200 dark:border-border rounded-lg shadow-xl p-1.5"
+              >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={downloadSessionJson}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-surface-3 transition-colors text-left"
+                >
+                  <Download className="w-3.5 h-3.5 flex-shrink-0" />
+                  Download session JSON
+                </button>
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={copySessionUrl}
+                  className="w-full flex items-center gap-2 px-2.5 py-1.5 text-sm text-gray-700 dark:text-gray-300 rounded-md hover:bg-gray-100 dark:hover:bg-surface-3 transition-colors text-left"
+                >
+                  {copied ? (
+                    <Check className="w-3.5 h-3.5 flex-shrink-0 text-emerald-500" />
+                  ) : (
+                    <Link2 className="w-3.5 h-3.5 flex-shrink-0" />
+                  )}
+                  {copied ? "Copied!" : "Copy session URL"}
+                </button>
+              </div>
+            )}
+          </div>
+
+          <button onClick={load} className="btn-ghost" title="Refresh">
+            <RefreshCw className="w-4 h-4" />
+          </button>
+        </div>
       </div>
 
       {isDashboardRun && (
@@ -590,13 +872,74 @@ export function SessionDetail() {
         </Link>
       )}
 
+      {/* Run Summary card (Task 4) — only for finished sessions, collapsed by default. */}
+      {(session.status === "completed" || session.status === "error") && (
+        <div className="card p-4">
+          <button
+            type="button"
+            onClick={() => setShowSummary((v) => !v)}
+            className="w-full flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-200"
+            aria-expanded={showSummary}
+          >
+            {showSummary ? (
+              <ChevronDown className="w-4 h-4 text-gray-500" />
+            ) : (
+              <ChevronRight className="w-4 h-4 text-gray-500" />
+            )}
+            <span>Run summary</span>
+            <span className="ml-auto text-[11px] font-normal text-gray-500 dark:text-gray-400">
+              {showSummary ? "Hide" : "View summary"}
+            </span>
+          </button>
+          {showSummary && (
+            <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
+              <SummaryPill
+                icon={<DollarSign className="w-4 h-4 text-emerald-500" />}
+                label="Cost"
+                value={cost && cost.total_cost > 0 ? fmtCostFull(cost.total_cost) : "—"}
+              />
+              <SummaryPill
+                icon={<Clock className="w-4 h-4 text-sky-500" />}
+                label="Duration"
+                value={
+                  session.ended_at
+                    ? formatDuration(session.started_at, session.ended_at)
+                    : "—"
+                }
+              />
+              <SummaryPill
+                icon={<Bot className="w-4 h-4 text-accent" />}
+                label="Agents"
+                value={`${agents.length} ${agents.length === 1 ? "agent" : "agents"}`}
+              />
+              <SummaryPill
+                icon={<Wrench className="w-4 h-4 text-indigo-500" />}
+                label="Tool calls"
+                value={toolCallCount.toLocaleString()}
+              />
+              <SummaryPill
+                icon={
+                  <AlertTriangle
+                    className={`w-4 h-4 ${errorCount > 0 ? "text-red-500" : "text-gray-400"}`}
+                  />
+                }
+                label="Errors"
+                value={errorCount.toLocaleString()}
+              />
+              <SummaryPill
+                icon={<FileEdit className="w-4 h-4 text-amber-500" />}
+                label="Files changed"
+                value={filesChangedCount.toLocaleString()}
+              />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tab Navigation */}
       <div className="flex items-center gap-1 border-b border-border">
         <button
-          onClick={() => {
-            setActiveTab("agents");
-            setTranscriptNotFound(false);
-          }}
+          onClick={() => selectTab("agents")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "agents"
               ? "border-accent text-gray-900 dark:text-accent font-semibold"
@@ -607,10 +950,7 @@ export function SessionDetail() {
           {t("detail.agents")} ({agents.length})
         </button>
         <button
-          onClick={() => {
-            setActiveTab("conversation");
-            setTranscriptNotFound(false);
-          }}
+          onClick={() => selectTab("conversation")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "conversation"
               ? "border-accent text-gray-900 dark:text-accent font-semibold"
@@ -621,10 +961,18 @@ export function SessionDetail() {
           Conversation
         </button>
         <button
-          onClick={() => {
-            setActiveTab("timeline");
-            setTranscriptNotFound(false);
-          }}
+          onClick={() => selectTab("thinking")}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "thinking"
+              ? "border-accent text-gray-900 dark:text-accent font-semibold"
+              : "border-transparent text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-300"
+          }`}
+        >
+          <Brain className="w-4 h-4" />
+          Thinking
+        </button>
+        <button
+          onClick={() => selectTab("timeline")}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "timeline"
               ? "border-accent text-gray-900 dark:text-accent font-semibold"
@@ -879,6 +1227,12 @@ export function SessionDetail() {
         </div>
       )}
 
+      {visitedTabs.has("thinking") && (
+        <div hidden={activeTab !== "thinking"}>
+          <ThinkingTab sessionId={session.id} onSeeContext={() => selectTab("conversation")} />
+        </div>
+      )}
+
       {visitedTabs.has("timeline") && (
         <div hidden={activeTab !== "timeline"}>
           <div className="mb-3">
@@ -1027,6 +1381,232 @@ export function SessionDetail() {
             </div>
           )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Compact stat pill used inside the Run Summary card. */
+function SummaryPill({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center gap-2.5 rounded-lg border border-border bg-surface-2 px-3 py-2">
+      <span className="flex-shrink-0">{icon}</span>
+      <div className="min-w-0">
+        <div className="text-[10px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+          {label}
+        </div>
+        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">{value}</div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Thinking / Decision-log tab. Fetches every transcript for the session and
+ * extracts the extended-thinking blocks into a chronological, agent-grouped
+ * timeline. Independent from the Conversation tab's incremental loader — it
+ * pulls a bounded batch per transcript on first mount.
+ */
+const THINKING_PREVIEW_CHARS = 300;
+const THINKING_FETCH_LIMIT = 500;
+
+function ThinkingTab({
+  sessionId,
+  onSeeContext,
+}: {
+  sessionId: string;
+  onSeeContext: () => void;
+}) {
+  const [entries, setEntries] = useState<ThinkingEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [agentFilter, setAgentFilter] = useState<string>("all");
+
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      try {
+        const { transcripts } = await api.sessions.transcripts(sessionId);
+        const withTranscript = transcripts.filter((t) => t.has_transcript);
+        const results = await Promise.all(
+          withTranscript.map(async (info) => {
+            try {
+              const res = await api.sessions.transcript(sessionId, {
+                agent_id: info.id === "main" ? undefined : info.id,
+                limit: THINKING_FETCH_LIMIT,
+              });
+              const out: ThinkingEntry[] = [];
+              for (const msg of res.messages) {
+                for (const block of msg.content) {
+                  if (block.type === "thinking" && block.text) {
+                    out.push({
+                      transcriptId: info.id,
+                      agentLabel: info.name,
+                      text: block.text,
+                      timestamp: msg.timestamp,
+                    });
+                  }
+                }
+              }
+              return out;
+            } catch {
+              return [] as ThinkingEntry[];
+            }
+          })
+        );
+        if (cancelled) return;
+        const flat = results.flat();
+        // Chronological order, undated entries last.
+        flat.sort((a, b) => {
+          if (!a.timestamp) return 1;
+          if (!b.timestamp) return -1;
+          return a.timestamp.localeCompare(b.timestamp);
+        });
+        setEntries(flat);
+      } catch {
+        if (!cancelled) setEntries([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    }
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
+
+  const agentLabels = useMemo(() => {
+    const seen = new Set<string>();
+    const labels: string[] = [];
+    for (const e of entries) {
+      if (!seen.has(e.agentLabel)) {
+        seen.add(e.agentLabel);
+        labels.push(e.agentLabel);
+      }
+    }
+    return labels;
+  }, [entries]);
+
+  const visible = useMemo(
+    () => (agentFilter === "all" ? entries : entries.filter((e) => e.agentLabel === agentFilter)),
+    [entries, agentFilter]
+  );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-12 text-gray-700 dark:text-gray-500 text-sm">
+        Loading thinking blocks...
+      </div>
+    );
+  }
+
+  if (entries.length === 0) {
+    return (
+      <div className="mx-auto max-w-md py-12 text-center">
+        <Brain className="w-8 h-8 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
+        <p className="text-sm text-gray-600 dark:text-gray-400">
+          No thinking blocks found in this session. Extended thinking must be enabled when running
+          Claude.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      {agentLabels.length > 1 && (
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">
+            Agent
+          </span>
+          <div className="relative">
+            <select
+              value={agentFilter}
+              onChange={(e) => setAgentFilter(e.target.value)}
+              className="appearance-none bg-surface-2 border border-surface-3 rounded-lg px-3 py-1.5 pr-8 text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:border-accent/50 hover:border-accent/30 cursor-pointer transition-colors"
+            >
+              <option value="all">All agents ({entries.length})</option>
+              {agentLabels.map((label) => (
+                <option key={label} value={label}>
+                  {label}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="w-3.5 h-3.5 text-gray-500 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-3 border-l-2 border-indigo-200 dark:border-indigo-500/20 pl-4">
+        {visible.map((entry, i) => (
+          <ThinkingEntryRow key={i} entry={entry} onSeeContext={onSeeContext} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** One entry in the Thinking timeline: agent + time header, preview, expand. */
+function ThinkingEntryRow({
+  entry,
+  onSeeContext,
+}: {
+  entry: ThinkingEntry;
+  onSeeContext: () => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = entry.text.length > THINKING_PREVIEW_CHARS;
+  const preview = isLong ? entry.text.slice(0, THINKING_PREVIEW_CHARS) : entry.text;
+
+  return (
+    <div className="relative rounded-lg border border-indigo-200 dark:border-indigo-500/20 bg-indigo-50/50 dark:bg-indigo-500/[0.06] p-3">
+      <div className="absolute -left-[1.32rem] top-4 w-2.5 h-2.5 rounded-full bg-indigo-400 dark:bg-indigo-500 ring-2 ring-white dark:ring-surface-1" />
+      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+        <Brain className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
+        <span className="text-xs font-semibold text-indigo-700 dark:text-indigo-300">
+          {entry.agentLabel}
+        </span>
+        {entry.timestamp && (
+          <span className="text-[10px] text-gray-500 dark:text-gray-400 font-mono">
+            {timeAgo(entry.timestamp)}
+          </span>
+        )}
+        <button
+          type="button"
+          onClick={onSeeContext}
+          className="ml-auto text-[11px] text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+        >
+          → See context
+        </button>
+      </div>
+      {expanded ? (
+        <div className="overflow-y-auto max-h-[600px]">
+          <pre className="whitespace-pre-wrap break-words leading-relaxed text-xs text-indigo-900/80 dark:text-indigo-100/70 font-sans">
+            {entry.text}
+          </pre>
+        </div>
+      ) : (
+        <p className="whitespace-pre-wrap break-words leading-relaxed text-xs text-indigo-900/80 dark:text-indigo-100/70">
+          {preview}
+          {isLong && "…"}
+        </p>
+      )}
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="mt-1.5 text-[11px] font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors"
+        >
+          {expanded ? "Show less" : "Expand"}
+        </button>
       )}
     </div>
   );

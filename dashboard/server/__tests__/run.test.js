@@ -5,7 +5,7 @@
  * envelope storage / attach, and end-to-end handle lifecycle. Uses a fake
  * child (PassThrough streams + EventEmitter) so we never invoke the real
  * `claude` binary.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { describe, it, before, after, beforeEach } = require("node:test");

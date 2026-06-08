@@ -4,7 +4,7 @@
  *   errored stat chips + connection state), quick navigation actions, and a
  *   local "Ask" box. Pure presentational — all data and the ask/navigation
  *   behavior are injected by the container.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useState, type FormEvent, type ReactNode } from "react";

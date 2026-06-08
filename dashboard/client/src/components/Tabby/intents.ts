@@ -4,7 +4,7 @@
  *   small set of intents answerable from cached dashboard status. Anything it
  *   can't answer becomes a handoff to the Run page (spawn a real `claude`).
  *   Pure function — no network, no DOM — so it's fully unit-testable.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import type { TabbyStatus } from "./brain";

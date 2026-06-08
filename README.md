@@ -1,18 +1,10 @@
 <div align="center">
 
-```
-██████╗  ██████╗ ██████╗ ██╗██╗   ██╗███╗   ███╗
-██╔══██╗██╔═══██╗██╔══██╗██║██║   ██║████╗ ████║
-██████╔╝██║   ██║██║  ██║██║██║   ██║██╔████╔██║
-██╔═══╝ ██║   ██║██║  ██║██║██║   ██║██║╚██╔╝██║
-██║     ╚██████╔╝██████╔╝██║╚██████╔╝██║ ╚═╝ ██║
-╚═╝      ╚═════╝ ╚═════╝ ╚═╝ ╚═════╝ ╚═╝     ╚═╝
-```
+<img src="dashboard/client/public/logo.svg" alt="Podium" width="180" height="180"/>
 
-**Stand here. See everything.**
+**Real-time observability for Claude Code agents.**
 
-*Podium puts you on the conductor's platform — every Claude Code agent, tool call,*
-*and session streaming live to your browser. Zero token cost.*
+*Every session, tool call, and agent spawn — streaming live to your browser. Zero token cost.*
 
 ---
 

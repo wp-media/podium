@@ -1,10 +1,10 @@
 /**
  * @file AgentCard.tsx
  * @description Defines the AgentCard component that displays a summary of an agent's information, including its name, status, task, current tool, and timestamps. The card is clickable and navigates to the agent's session details when clicked. It also visually distinguishes active agents with a border highlight.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 import { useTranslation } from "react-i18next";
-import { Bot, GitBranch, Clock, Wrench, Cpu, Coins } from "lucide-react";
+import { Bot, GitBranch, Clock, Wrench, Cpu, Coins, MessageSquare } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { AgentStatusBadge } from "./StatusBadge";
 import { effectiveAgentStatus, isAgentAwaitingInput } from "../lib/types";
@@ -19,9 +19,12 @@ interface AgentCardProps {
   session?: Session;
   label?: string;
   onClick?: () => void;
+  /** When true, the card is a leaf agent (no children). On hover a
+   *  MessageSquare icon appears to hint that clicking navigates to the transcript. */
+  isLeaf?: boolean;
 }
 
-export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
+export function AgentCard({ agent, session, label, onClick, isLeaf }: AgentCardProps) {
   const navigate = useNavigate();
   const { t } = useTranslation("kanban");
   const isWaiting = agent.status === "waiting" || isAgentAwaitingInput(agent);
@@ -33,7 +36,20 @@ export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
   // subagents alike. Subtitle differs by type: main uses model+cwd (its
   // auto-generated name carries no info), subagents stick with their
   // subagent_type label (more useful than repeating the session model).
-  const model = formatModelName(session?.model);
+  //
+  // For subagents, prefer the model stored in agent.metadata (set at spawn
+  // time from the Agent tool's `model` parameter, or from the JSONL transcript).
+  // This avoids showing the parent session's model on every subagent card.
+  const agentMetadataModel = (() => {
+    if (isMain || !agent.metadata) return null;
+    try {
+      const m = typeof agent.metadata === "string" ? JSON.parse(agent.metadata) : agent.metadata;
+      return m?.model ? formatModelName(m.model) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const model = agentMetadataModel || formatModelName(session?.model);
   const cwdBase = pathBasename(session?.cwd);
   const cost = typeof session?.cost === "number" ? session.cost : 0;
 
@@ -73,22 +89,24 @@ export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
   return (
     <div
       onClick={handleClick}
-      className={`group relative p-4 cursor-pointer overflow-hidden rounded-xl bg-white dark:bg-surface-2 border border-gray-100 dark:border-border shadow-sm hover:shadow-md dark:shadow-none hover:ring-1 hover:ring-black/5 dark:hover:ring-white/5 transition-all duration-200 ${
-        isWaiting
-          ? "border-l-2 border-l-amber-400 dark:border-l-amber-500/60"
-          : isActive
-            ? "border-l-2 border-l-emerald-500"
-            : ""
+      className={`group relative p-4 cursor-pointer overflow-hidden card transition-all duration-200 ${
+        isActive
+          ? "card-active"
+          : isWaiting
+            ? "overflow-hidden card-waiting card-hover"
+            : "overflow-hidden card-hover"
       }`}
     >
       <div className="flex items-start justify-between gap-2 mb-3 min-w-0">
         <div className="flex items-center gap-2.5 min-w-0 overflow-hidden">
           <div
-            className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 ${
+            className={`w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 transition-shadow duration-300 ${
               isMain
-                ? "bg-accent/25 dark:bg-accent/15 text-amber-700 dark:text-accent"
+                ? isActive
+                  ? "bg-accent/30 dark:bg-accent/20 text-amber-700 dark:text-accent"
+                  : "bg-accent/20 dark:bg-accent/12 text-amber-700 dark:text-accent"
                 : "bg-indigo-50 dark:bg-indigo-500/15 text-indigo-700 dark:text-indigo-400"
-            }`}
+            } ${isActive && isMain ? "shadow-[0_0_14px_-2px_rgba(254,210,58,0.60)]" : ""}`}
           >
             {isMain ? <Bot className="w-3.5 h-3.5" /> : <GitBranch className="w-3.5 h-3.5" />}
           </div>
@@ -121,12 +139,15 @@ export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
       <div className="flex items-center gap-3 text-[11px] text-gray-500 dark:text-gray-400 min-w-0 overflow-hidden flex-wrap">
         {isActive && (
           <span
-            className="flex items-center gap-1.5 flex-shrink-0 text-emerald-700 dark:text-emerald-400 font-medium"
+            className="flex items-center gap-1.5 flex-shrink-0 font-semibold text-accent"
             title={t("working", "Working")}
           >
-            <span className="relative flex h-1.5 w-1.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500 dark:bg-emerald-400" />
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-60" />
+              <span
+                className="relative inline-flex rounded-full h-2 w-2 bg-accent"
+                style={{ boxShadow: "0 0 6px 1px rgba(254,210,58,0.70)" }}
+              />
             </span>
             {t("live", "Live")}
           </span>
@@ -173,6 +194,18 @@ export function AgentCard({ agent, session, label, onClick }: AgentCardProps) {
           {agent.session_id.slice(0, 8)}
         </span>
       </div>
+
+      {/* Leaf-agent affordance: subtle icon visible on hover to signal
+          the card navigates to the conversation transcript. */}
+      {isLeaf && (
+        <span
+          className="absolute top-3 right-10 opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-gray-400 dark:text-gray-500"
+          title="View conversation"
+          aria-hidden="true"
+        >
+          <MessageSquare className="w-3.5 h-3.5" />
+        </span>
+      )}
     </div>
   );
 }

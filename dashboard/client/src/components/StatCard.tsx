@@ -1,7 +1,7 @@
 /**
  * @file StatCard.tsx
  * @description A reusable React component that displays a statistic with a label, value, icon, and optional trend information. It is designed to be used in dashboards or analytics pages to present key metrics in a visually appealing way. The component also supports showing raw values as tooltips on hover for more detailed information.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import type { LucideIcon } from "lucide-react";
@@ -31,12 +31,12 @@ export function StatCard({
   loading = false,
 }: StatCardProps) {
   return (
-    <div className="card group rounded-lg p-5 flex flex-col gap-3">
+    <div className="card card-stat group rounded-lg p-5 flex flex-col gap-3 overflow-hidden">
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 truncate">
           {label}
         </span>
-        <div className="w-9 h-9 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0 transition-shadow duration-150 group-hover:shadow-[0_0_12px_-2px_var(--accent)]">
+        <div className="w-9 h-9 rounded-lg bg-accent/15 dark:bg-accent/10 flex items-center justify-center flex-shrink-0 transition-all duration-300 group-hover:bg-accent/25 group-hover:shadow-[0_0_18px_-2px_rgba(254,210,58,0.55)]">
           <Icon className={`w-4 h-4 ${accentColor}`} />
         </div>
       </div>

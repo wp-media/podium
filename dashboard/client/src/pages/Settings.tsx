@@ -1,7 +1,7 @@
 /**
  * @file Settings.tsx
  * @description Provides a settings page for managing model pricing rules, notification preferences, and system information with real-time updates and actionable controls for data management and hook configuration.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useState, useCallback, useRef, useSyncExternalStore } from "react";
@@ -719,7 +719,7 @@ export function Settings() {
   return (
     <div className="animate-fade-in space-y-8">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="page-header flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
             <SettingsIcon className="w-4.5 h-4.5 text-accent" />
@@ -758,7 +758,7 @@ export function Settings() {
       </div>
 
       {/* Cost summary card */}
-      <div className="card p-6">
+      {advancedMetrics && <div className="card p-6">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 flex items-center justify-center">
@@ -784,11 +784,11 @@ export function Settings() {
             <p>{t("basedOnUsage")}</p>
           </div>
         </div>
-      </div>
+      </div>}
 
       {/* ─── INTERFACE ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-3 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-3 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <LayoutDashboard className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           Interface
         </h3>
@@ -846,10 +846,10 @@ export function Settings() {
       </section>
 
       {/* ─── MODEL PRICING ─── */}
-      <section>
+      {advancedMetrics && <section>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div>
-            <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
               <DollarSign className="w-4 h-4 text-gray-700 dark:text-gray-500" />
               {t("pricing.title")}
               <PricingInfoTooltip />
@@ -981,11 +981,11 @@ export function Settings() {
             {formatTimestamp(lastUpdated)}
           </p>
         )}
-      </section>
+      </section>}
 
       {/* ─── HOOK CONFIGURATION ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <Plug className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           {t("hooks.title")}
         </h3>
@@ -1045,7 +1045,7 @@ export function Settings() {
 
       {/* ─── CLAUDE HOME ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <FolderOpen className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           {t("claudeHome.title")}
         </h3>
@@ -1085,7 +1085,7 @@ export function Settings() {
 
       {/* ─── NOTIFICATIONS ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <Bell className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           {t("notifications.title")}
         </h3>
@@ -1225,7 +1225,7 @@ export function Settings() {
 
       {/* ─── DATA MANAGEMENT ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <Database className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           {t("data.title")}
         </h3>
@@ -1418,7 +1418,7 @@ export function Settings() {
 
       {/* ─── ABOUT ─── */}
       <section>
-        <h3 className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
+        <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2 mb-1 border-l-2 border-amber-400/60 dark:border-accent/60 pl-2.5">
           <Server className="w-4 h-4 text-gray-700 dark:text-gray-500" />
           {t("about.title")}
         </h3>

@@ -1,0 +1,50 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="b3bg" cx="50%" cy="42%" r="75%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#141520"/>
+      <stop offset="100%" stop-color="#0A0B12"/>
+    </radialGradient>
+    <linearGradient id="b3gold" x1="156" y1="155" x2="356" y2="348" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <filter id="b3glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#b3bg)"/>
+
+  <!-- glow under crown -->
+  <g stroke="url(#b3gold)" stroke-width="6" stroke-linecap="round" opacity="0.3" filter="url(#b3glow)">
+    <line x1="156" y1="300" x2="356" y2="300"/>
+    <line x1="186" y1="300" x2="186" y2="188"/>
+    <line x1="256" y1="300" x2="256" y2="155"/>
+    <line x1="326" y1="300" x2="326" y2="188"/>
+  </g>
+
+  <!-- crown -->
+  <g stroke="url(#b3gold)" stroke-width="6" stroke-linecap="round">
+    <line x1="156" y1="300" x2="356" y2="300"/>
+    <line x1="186" y1="300" x2="186" y2="188"/>
+    <line x1="256" y1="300" x2="256" y2="155"/>
+    <line x1="326" y1="300" x2="326" y2="188"/>
+  </g>
+
+  <!-- gold dots at prong tips -->
+  <g fill="url(#b3gold)">
+    <circle cx="186" cy="188" r="7"/>
+    <circle cx="256" cy="155" r="7"/>
+    <circle cx="326" cy="188" r="7"/>
+  </g>
+
+  <!-- small white eye below -->
+  <path d="M 202,350 C 220,326 292,326 310,350 C 292,374 220,374 202,350 Z"
+        fill="none" stroke="#FFFFFF" stroke-width="5" stroke-linecap="round"/>
+
+  <!-- dark iris in the small eye -->
+  <circle cx="256" cy="350" r="13" fill="#0A0B12"/>
+  <!-- gold pupil accent -->
+  <circle cx="256" cy="350" r="5" fill="url(#b3gold)"/>
+</svg>

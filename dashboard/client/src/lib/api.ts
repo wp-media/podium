@@ -1,7 +1,7 @@
 /**
  * @file api.ts
  * @description Defines a set of functions for interacting with the backend API of the agent dashboard application. It includes methods for fetching statistics, managing sessions and agents, retrieving analytics data, handling settings, and managing model pricing. The module abstracts away the details of making HTTP requests and provides a clean interface for the rest of the application to use when communicating with the server.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import type {
@@ -76,6 +76,12 @@ export const api = {
       request<{ session: Session; agents: Agent[]; events: DashboardEvent[] }>(
         `/sessions/${encodeURIComponent(id)}`
       ),
+    patch: (id: string, data: { name?: string | null; metadata?: Record<string, unknown> | null }) =>
+      request<{ session: Session }>(`/sessions/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      }),
     stats: (id: string) => request<SessionStats>(`/sessions/${encodeURIComponent(id)}/stats`),
     transcripts: (id: string) =>
       request<TranscriptListResult>(`/sessions/${encodeURIComponent(id)}/transcripts`),
@@ -404,10 +410,20 @@ export interface CcMdItem {
   preview: string;
 }
 
+export interface CcPluginItem {
+  name: string;
+  file: string;
+  description: string | null;
+  preview: string;
+}
+
 export interface CcPluginContributions {
   skills: number;
+  skillItems: CcPluginItem[];
   agents: number;
+  agentItems: CcPluginItem[];
   commands: number;
+  commandItems: CcPluginItem[];
   outputStyles: number;
   hooks: number;
   pluginJson: {

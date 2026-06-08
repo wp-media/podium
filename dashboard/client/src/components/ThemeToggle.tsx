@@ -6,7 +6,7 @@
  * `podium-theme` key. Styled to match the sidebar's collapse toggle so it
  * reads as part of the same control cluster in both collapsed and expanded
  * states.
- * @author WP Media
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useCallback, useEffect, useState } from "react";

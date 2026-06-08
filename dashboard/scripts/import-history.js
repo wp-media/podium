@@ -8,7 +8,7 @@
  * Can be run standalone: node scripts/import-history.js [--dry-run] [--project <name>]
  * Also exported for auto-import on server startup.
  *
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const fs = require("fs");
@@ -412,12 +412,16 @@ async function parseSubagentFile(filePath) {
 
   if (!firstTimestamp) return null;
 
-  // Try to read companion meta.json for agentType
+  // Try to read companion meta.json for agentType, toolUseId, and description
   const metaPath = filePath.replace(/\.jsonl$/, ".meta.json");
+  let spawnToolUseId = null;
+  let description = null;
   try {
     if (fs.existsSync(metaPath)) {
       const meta = JSON.parse(fs.readFileSync(metaPath, "utf8"));
       if (meta.agentType) agentType = meta.agentType;
+      if (meta.toolUseId) spawnToolUseId = meta.toolUseId;
+      if (meta.description) description = meta.description;
     }
   } catch {
     /* non-fatal */
@@ -426,6 +430,8 @@ async function parseSubagentFile(filePath) {
   return {
     agentId,
     agentType,
+    description,
+    spawnToolUseId,
     task,
     model,
     startedAt: firstTimestamp,
@@ -614,18 +620,44 @@ function truncateForEvent(value) {
  * matches a JSONL transcript. Used to merge JSONL-extracted tool events into
  * the live subagent row instead of creating a duplicate row.
  *
- * Match heuristic: same session, same agentType, started within START_TOLERANCE_MS
- * of the JSONL's first timestamp, not already a JSONL-keyed row.
+ * Primary match: spawn_tool_use_id stored in agent metadata (reliable 1:1 key).
+ * Fallback: same session, compatible agentType, started within START_TOLERANCE_MS.
  */
 const SUBAGENT_LIVE_MATCH_TOLERANCE_MS = 30_000;
 function findLiveSubagentForJsonl(dbModule, sessionId, subData) {
-  if (!subData.agentType || !subData.startedAt) return null;
+  if (!subData.startedAt) return null;
+
+  // Primary: match by the tool_use_id stored when the Agent tool was called.
+  // This is a reliable 1:1 link even when multiple subagents of the same type
+  // run concurrently (e.g. 8 "general-purpose" agents spawned in parallel).
+  if (subData.spawnToolUseId) {
+    const byToolUseId = dbModule.db
+      .prepare(
+        `SELECT id FROM agents
+         WHERE session_id = ?
+           AND type = 'subagent'
+           AND id NOT LIKE ?
+           AND metadata LIKE ?
+         LIMIT 1`
+      )
+      .get(
+        sessionId,
+        `${sessionId}-jsonl-%`,
+        `%"spawn_tool_use_id":"${subData.spawnToolUseId}"%`
+      );
+    if (byToolUseId) return byToolUseId;
+  }
+
+  // Fallback: timing + type heuristic for older agent records that predate
+  // spawn_tool_use_id storage. Also matches null subagent_type against
+  // "general-purpose" since the harness defaults to that when unspecified.
+  if (!subData.agentType) return null;
   return dbModule.db
     .prepare(
       `SELECT id FROM agents
        WHERE session_id = ?
          AND type = 'subagent'
-         AND subagent_type = ?
+         AND (subagent_type = ? OR (subagent_type IS NULL AND ? = 'general-purpose'))
          AND id NOT LIKE ?
          AND ABS(CAST(strftime('%s', started_at) AS INTEGER) -
                  CAST(strftime('%s', ?) AS INTEGER)) <= ?
@@ -635,6 +667,7 @@ function findLiveSubagentForJsonl(dbModule, sessionId, subData) {
     )
     .get(
       sessionId,
+      subData.agentType,
       subData.agentType,
       `${sessionId}-jsonl-%`,
       subData.startedAt,

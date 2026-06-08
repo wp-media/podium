@@ -1,7 +1,7 @@
 /**
  * @file useNotifications.ts
  * @description Defines a custom React hook for managing browser notifications in the agent dashboard application. The hook subscribes to the event bus to listen for specific events such as new sessions, session errors, session completions, and subagent spawns. Based on user preferences stored in localStorage, it triggers browser notifications to keep users informed of important updates without needing to actively monitor the dashboard. The hook should be called once at the root level of the application to ensure notifications are handled globally.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect } from "react";
@@ -128,6 +128,24 @@ export function useNotifications() {
             notify(
               i18n.t("errors:notifications.defaultTitle"),
               ev.summary || i18n.t("errors:notifications.defaultBody")
+            );
+          }
+          break;
+        }
+        default: {
+          // Handle backend event types not yet in the WSMessage union.
+          const raw = msg as unknown as { type: string; data: Record<string, unknown> };
+          if (raw.type === "cost_spike") {
+            const cost = typeof raw.data.cost === "number" ? raw.data.cost : 0;
+            notify(
+              "Podium — Cost alert",
+              `Session cost reached $${cost.toFixed(2)}`
+            );
+          } else if (raw.type === "agent_stuck") {
+            const mins = typeof raw.data.minutes_stuck === "number" ? raw.data.minutes_stuck : 0;
+            notify(
+              "Podium — Agent may be stuck",
+              `An agent has been silent for ${mins} minute${mins !== 1 ? "s" : ""}`
             );
           }
           break;

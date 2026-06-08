@@ -18,7 +18,7 @@
  *      the JSONL by type + start time, events attach to the live row
  *      instead of creating a duplicate JSONL-keyed row.
  *
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { describe, it, before, after } = require("node:test");

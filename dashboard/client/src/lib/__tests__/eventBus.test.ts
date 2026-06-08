@@ -1,7 +1,7 @@
 /**
  * @file eventBus.test.ts
  * @description Unit tests for the eventBus module to ensure correct subscription, publishing, and unsubscription behavior in the agent dashboard application.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { describe, it, expect, vi } from "vitest";

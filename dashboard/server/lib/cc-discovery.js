@@ -10,7 +10,7 @@
  * getProjectClaudeDir(), or getProjectRoot() (for CLAUDE.md). Reads outside
  * those roots return null. Settings are redacted of secret-like keys before
  * returning.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 const fs = require("node:fs");
 const path = require("node:path");
@@ -234,6 +234,28 @@ function countMdIn(dir) {
   }
 }
 
+function listMdItemsIn(dir) {
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((e) => e.isFile() && e.name.endsWith(".md"))
+      .map((e) => {
+        const file = path.join(dir, e.name);
+        const read = safeReadText(file);
+        const { frontmatter, body } = read ? parseFrontmatter(read.text) : { frontmatter: {}, body: "" };
+        return {
+          name: e.name.replace(/\.md$/, ""),
+          file,
+          description: frontmatter?.description ?? null,
+          preview: body.slice(0, 320),
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
 function countSkillDirsIn(dir) {
   try {
     return fs.readdirSync(dir, { withFileTypes: true }).filter((e) => {
@@ -249,6 +271,31 @@ function countSkillDirsIn(dir) {
   }
 }
 
+function listSkillItemsIn(dir) {
+  try {
+    return fs
+      .readdirSync(dir, { withFileTypes: true })
+      .filter((e) => {
+        if (!e.isDirectory()) return false;
+        try { return fs.statSync(path.join(dir, e.name, "SKILL.md")).isFile(); } catch { return false; }
+      })
+      .map((e) => {
+        const file = path.join(dir, e.name, "SKILL.md");
+        const read = safeReadText(file);
+        const { frontmatter, body } = read ? parseFrontmatter(read.text) : { frontmatter: {}, body: "" };
+        return {
+          name: e.name,
+          file,
+          description: frontmatter?.description ?? null,
+          preview: body.slice(0, 320),
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
 function readPluginContributions(installPath) {
   if (!installPath) return null;
   let pluginJson = null;
@@ -258,10 +305,16 @@ function readPluginContributions(installPath) {
   } catch {
     pluginJson = null;
   }
+  const commandItems = listMdItemsIn(path.join(installPath, "commands"));
+  const agentItems = listMdItemsIn(path.join(installPath, "agents"));
+  const skillItems = listSkillItemsIn(path.join(installPath, "skills"));
   return {
-    skills: countSkillDirsIn(path.join(installPath, "skills")),
-    agents: countMdIn(path.join(installPath, "agents")),
-    commands: countMdIn(path.join(installPath, "commands")),
+    skills: skillItems.length,
+    skillItems,
+    agents: agentItems.length,
+    agentItems,
+    commands: commandItems.length,
+    commandItems,
     outputStyles: countMdIn(path.join(installPath, "output-styles")),
     hooks: (() => {
       try {

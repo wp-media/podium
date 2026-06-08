@@ -1,0 +1,59 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="b5bg" cx="50%" cy="42%" r="75%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#141520"/>
+      <stop offset="100%" stop-color="#0A0B12"/>
+    </radialGradient>
+    <!-- gold for the upper lid: light from top-left -->
+    <linearGradient id="b5goldTop" x1="145" y1="180" x2="367" y2="256" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <!-- gold for the lower lid -->
+    <linearGradient id="b5goldBot" x1="145" y1="256" x2="367" y2="332" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <linearGradient id="b5goldDot" x1="140" y1="251" x2="372" y2="261" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <filter id="b5glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#b5bg)"/>
+
+  <!-- ===== GLOW behind lids ===== -->
+  <g opacity="0.32" filter="url(#b5glow)">
+    <path d="M 145,256 C 165,205 186,202 210,204 C 230,206 236,212 244,222 C 250,230 252,234 256,234 C 260,234 262,230 268,222 C 276,212 282,206 302,204 C 326,202 347,205 367,256"
+          fill="none" stroke="url(#b5goldTop)" stroke-width="9" stroke-linecap="round"/>
+    <path d="M 145,256 C 165,307 186,310 210,308 C 230,306 236,300 244,290 C 250,282 252,278 256,278 C 260,278 262,282 268,290 C 276,300 282,306 302,308 C 326,310 347,307 367,256"
+          fill="none" stroke="url(#b5goldBot)" stroke-width="9" stroke-linecap="round"/>
+  </g>
+
+  <!-- ===== UPPER LID — a { rotated 90deg: spans corner-to-corner as an eyelid, sharp central pip (brace notch) dips toward the iris ===== -->
+  <path d="M 145,256 C 165,205 186,202 210,204 C 230,206 236,212 244,222 C 250,230 252,234 256,234 C 260,234 262,230 268,222 C 276,212 282,206 302,204 C 326,202 347,205 367,256"
+        fill="none" stroke="url(#b5goldTop)" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- ===== LOWER LID — a } rotated 90deg, mirrored: lower eyelid with central pip ===== -->
+  <path d="M 145,256 C 165,307 186,310 210,308 C 230,306 236,300 244,290 C 250,282 252,278 256,278 C 260,278 262,282 268,290 C 276,300 282,306 302,308 C 326,310 347,307 367,256"
+        fill="none" stroke="url(#b5goldBot)" stroke-width="9" stroke-linecap="round"/>
+
+  <!-- eye corner points -->
+  <circle cx="145" cy="256" r="5" fill="url(#b5goldDot)"/>
+  <circle cx="367" cy="256" r="5" fill="url(#b5goldDot)"/>
+
+  <!-- dark iris -->
+  <circle cx="256" cy="256" r="36" fill="#0A0B12"/>
+
+  <!-- white ring (single white element) -->
+  <circle cx="256" cy="256" r="25" fill="none" stroke="#FFFFFF" stroke-width="7"/>
+
+  <!-- dark pupil -->
+  <circle cx="256" cy="256" r="10" fill="#0A0B12"/>
+</svg>

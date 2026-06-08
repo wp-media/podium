@@ -5,7 +5,7 @@
  * flat mode toggles the inline EventDetail payload view; the "View session"
  * Link navigates to the session page. Live events trigger a debounced,
  * filter-aware refetch that preserves the user's accumulated page size.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useState, useCallback, useRef, useMemo, useSyncExternalStore } from "react";
@@ -47,12 +47,38 @@ const MAX_REFRESH = 500;
 // PostToolUse results) triggers one refetch instead of dozens.
 const REFRESH_DEBOUNCE_MS = 500;
 
+const ACTIVITY_FILTERS_KEY = "podium-activity-filters";
+
+function loadFiltersFromStorage(): EventFiltersValue {
+  try {
+    const raw = sessionStorage.getItem(ACTIVITY_FILTERS_KEY);
+    if (!raw) return EMPTY_FILTERS;
+    const parsed = JSON.parse(raw) as EventFiltersValue;
+    // Validate shape: must have all required keys
+    if (
+      Array.isArray(parsed.event_type) &&
+      Array.isArray(parsed.tool_name) &&
+      Array.isArray(parsed.agent_id) &&
+      Array.isArray(parsed.session_id) &&
+      Array.isArray(parsed.status) &&
+      typeof parsed.q === "string" &&
+      typeof parsed.from === "string" &&
+      typeof parsed.to === "string"
+    ) {
+      return parsed;
+    }
+  } catch {
+    // ignore parse errors
+  }
+  return EMPTY_FILTERS;
+}
+
 export function ActivityFeed() {
   const { t } = useTranslation("activity");
   const [events, setEvents] = useState<DashboardEvent[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(0);
-  const [filters, setFilters] = useState<EventFiltersValue>(EMPTY_FILTERS);
+  const [filters, setFilters] = useState<EventFiltersValue>(loadFiltersFromStorage);
   const [paused, setPaused] = useState(false);
   const [loading, setLoading] = useState(true);
   const [bufferCount, setBufferCount] = useState(0);
@@ -126,6 +152,15 @@ export function ActivityFeed() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Persist filters to sessionStorage so they survive navigation within the tab.
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(ACTIVITY_FILTERS_KEY, JSON.stringify(filters));
+    } catch {
+      // ignore quota errors
+    }
+  }, [filters]);
 
   // Reset to page 0 whenever filters change so the user lands on the first
   // page of the new filtered result set.
@@ -248,7 +283,7 @@ export function ActivityFeed() {
 
   return (
     <div className="animate-fade-in">
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+      <div className="page-header flex flex-wrap items-center justify-between gap-3 mb-6">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
             <Activity className="w-4.5 h-4.5 text-accent" />
@@ -309,6 +344,43 @@ export function ActivityFeed() {
 
       <div className="mb-3">
         <EventFiltersInfo />
+      </div>
+
+      {/* Filter presets — one-click shortcuts that set a common filter combination */}
+      <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <span className="text-[11px] text-gray-500 dark:text-gray-400 font-medium mr-1">Presets:</span>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters({ ...EMPTY_FILTERS, status: ["error"] })
+          }
+          className="px-2 py-0.5 text-xs rounded-full border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-500/20 transition-colors cursor-pointer"
+        >
+          Errors only
+        </button>
+        <button
+          type="button"
+          onClick={() =>
+            setFilters({ ...EMPTY_FILTERS, event_type: ["PreToolUse", "PostToolUse"] })
+          }
+          className="px-2 py-0.5 text-xs rounded-full border border-amber-200 dark:border-amber-500/30 bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors cursor-pointer"
+        >
+          Tool calls only
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setFilters(EMPTY_FILTERS);
+            try {
+              sessionStorage.removeItem(ACTIVITY_FILTERS_KEY);
+            } catch {
+              // ignore
+            }
+          }}
+          className="px-2 py-0.5 text-xs rounded-full border border-gray-200 dark:border-border bg-white dark:bg-surface-2 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-surface-3 transition-colors cursor-pointer"
+        >
+          Clear filters
+        </button>
       </div>
 
       <div className="mb-4">

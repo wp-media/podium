@@ -3,7 +3,7 @@
  * @description Tiny localStorage-backed preference store for Tabby (enabled +
  *   muted). Broadcasts changes via a window CustomEvent so the Settings toggle
  *   and the live widget stay in sync within the same tab without a reload.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const ENABLED_KEY = "agent-dashboard-tabby-enabled";

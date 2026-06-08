@@ -5,7 +5,7 @@
   "type": "module",
   "main": "hook.mjs",
   "license": "MIT",
-  "author": "WP Media",
+  "author": "Gael Robin <robin.gael@gmail.com>",
   "repository": {
     "type": "git",
     "url": "https://github.com/wp-media/podium"

@@ -4,7 +4,7 @@
  * search, date range) plus pagination. Also exposes a `/facets` endpoint that
  * returns the distinct event_type and tool_name values currently in the DB,
  * so the UI can populate filter dropdowns without hardcoding them.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { Router } = require("express");
@@ -99,6 +99,29 @@ router.get("/", (req, res) => {
   const { count: total } = db.prepare(countSql).get(...whereParams);
 
   res.json({ events, limit, offset, total });
+});
+
+// GET /api/events/:id/full — Returns complete event data including the full raw data column.
+// Unlike the list endpoints which may be queried in bulk, this endpoint returns a single event
+// with no truncation applied.
+router.get("/:id/full", (req, res) => {
+  const eventId = parseInt(req.params.id, 10);
+  if (Number.isNaN(eventId)) {
+    return res.status(400).json({ error: { code: "INVALID_INPUT", message: "id must be an integer" } });
+  }
+  const event = db.prepare("SELECT * FROM events WHERE id = ?").get(eventId);
+  if (!event) {
+    return res.status(404).json({ error: { code: "NOT_FOUND", message: "Event not found" } });
+  }
+  // Parse data JSON if present so clients receive a structured object
+  if (event.data && typeof event.data === "string") {
+    try {
+      event.data = JSON.parse(event.data);
+    } catch {
+      // Leave as raw string if not valid JSON
+    }
+  }
+  res.json({ event });
 });
 
 // GET /api/events/facets — distinct event_type / tool_name values in the DB.

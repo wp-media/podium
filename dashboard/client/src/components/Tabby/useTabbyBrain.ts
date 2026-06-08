@@ -4,7 +4,7 @@
  *   and to real timers. It is the only unit that subscribes to `eventBus`. It
  *   exposes the derived mood, a status summary, the current speech bubble, and
  *   imperative controls (mute, clear alerts, set thinking) for the UI shell.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";

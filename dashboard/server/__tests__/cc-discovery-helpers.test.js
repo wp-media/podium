@@ -6,7 +6,7 @@
  * cc-config.test.js exercise these indirectly through HTTP routes; this
  * file pins down their behavior at the function level so future refactors
  * surface regressions immediately.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { describe, it } = require("node:test");

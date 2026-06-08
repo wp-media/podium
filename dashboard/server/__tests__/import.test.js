@@ -5,7 +5,7 @@
  * for the same JSONL fixtures, that re-imports are idempotent, and that
  * archive extraction rejects path-traversal entries.
  *
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 const { describe, it, before, after } = require("node:test");

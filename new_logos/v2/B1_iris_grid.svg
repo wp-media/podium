@@ -1,0 +1,48 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="b1bg" cx="50%" cy="42%" r="75%" gradientUnits="objectBoundingBox">
+      <stop offset="0%" stop-color="#141520"/>
+      <stop offset="100%" stop-color="#0A0B12"/>
+    </radialGradient>
+    <linearGradient id="b1gold" x1="146" y1="106" x2="366" y2="406" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <linearGradient id="b1goldThin" x1="96" y1="96" x2="416" y2="416" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#FFE27A"/>
+      <stop offset="52%" stop-color="#FED23A"/>
+      <stop offset="100%" stop-color="#C9A227"/>
+    </linearGradient>
+    <filter id="b1glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="6"/>
+    </filter>
+  </defs>
+
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#b1bg)"/>
+
+  <!-- soft outer glow on main circle -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#b1gold)" stroke-width="6" opacity="0.35" filter="url(#b1glow)"/>
+
+  <!-- main iris circle -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#b1gold)" stroke-width="6"/>
+
+  <!-- crosshairs with central gap (reticle) -->
+  <g stroke="url(#b1goldThin)" stroke-width="3" stroke-linecap="round" opacity="0.9">
+    <line x1="96"  y1="256" x2="226" y2="256"/>
+    <line x1="286" y1="256" x2="416" y2="256"/>
+    <line x1="256" y1="96"  x2="256" y2="226"/>
+    <line x1="256" y1="286" x2="256" y2="416"/>
+  </g>
+
+  <!-- tick marks just inside the circle at 0/90/180/270 -->
+  <g stroke="url(#b1goldThin)" stroke-width="6" stroke-linecap="round" opacity="0.85">
+    <line x1="256" y1="108" x2="256" y2="124"/>
+    <line x1="256" y1="388" x2="256" y2="404"/>
+    <line x1="108" y1="256" x2="124" y2="256"/>
+    <line x1="388" y1="256" x2="404" y2="256"/>
+  </g>
+
+  <!-- white centre dot (single white element) -->
+  <circle cx="256" cy="256" r="8" fill="#FFFFFF"/>
+</svg>

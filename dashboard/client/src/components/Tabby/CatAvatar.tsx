@@ -7,7 +7,7 @@
  *   isolation. Geometry tuned for max cuteness: big round head, oversized
  *   sparkly eyes, pink ear-insides + cheek blush, classic tabby forehead
  *   stripes, a fluffy tail, and little paws peeking at the bottom.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import { useEffect, useRef, useState } from "react";

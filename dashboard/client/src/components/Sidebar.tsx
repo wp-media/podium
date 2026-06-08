@@ -16,6 +16,8 @@ import {
   Workflow,
   Boxes,
   Play,
+  Search,
+  Upload,
   Settings,
   Wifi,
   WifiOff,
@@ -38,6 +40,7 @@ import { loadAdvancedMetrics } from "../lib/displaySettings";
 
 const ALL_NAV_ITEMS = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", key: "dashboard" },
+  { to: "/search", icon: Search, label: "Search", key: "search" },
   { to: "/kanban", icon: Columns3, label: "Kanban Board", key: "kanban" },
   { to: "/sessions", icon: FolderOpen, label: "Sessions", key: "sessions" },
   { to: "/activity", icon: Activity, label: "Activity Feed", key: "activity" },
@@ -45,6 +48,7 @@ const ALL_NAV_ITEMS = [
   { to: "/workflows", icon: Workflow, label: "Workflows", key: "workflows" },
   { to: "/cc-config", icon: Boxes, label: "Claude Config", key: "cc-config" },
   { to: "/run", icon: Play, label: "Run Claude", key: "run" },
+  { to: "/import", icon: Upload, label: "Import", key: "import" },
   { to: "/settings", icon: Settings, label: "Settings", key: "settings" },
 ] as const;
 
@@ -307,27 +311,22 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
 
   return (
     <aside
-      className={`fixed left-0 top-0 bottom-0 m-2 rounded-2xl bg-surface-1 border border-white/[0.06] flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
+      className={`fixed left-0 top-0 bottom-0 bg-white/90 dark:bg-surface-1/90 backdrop-blur-md border-r border-white/50 dark:border-border flex flex-col z-30 overflow-hidden transition-[width] duration-200 ${
         collapsed ? "w-[4.25rem]" : "w-60"
       }`}
     >
       {/* Brand */}
-      <div className="px-3 py-4 flex-shrink-0">
-        <div
-          className={`flex items-center rounded-xl p-2 ${collapsed ? "justify-center" : "gap-3 px-3"}`}
-        >
-          <div
-            className="w-8 h-8 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0"
-            style={{ boxShadow: "0 0 12px -2px var(--accent, #d4a843)" }}
-          >
+      <div className="px-3 py-4 border-b border-border flex-shrink-0">
+        <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
+          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
             <span className="text-base leading-none text-accent" aria-hidden>
               ◆
             </span>
           </div>
           {!collapsed && (
             <div className="min-w-0">
-              <h1 className="text-sm font-bold text-fg-base truncate tracking-tight">Podium</h1>
-              <p className="text-[11px] text-accent font-semibold">{"{wpmedia}"}</p>
+              <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">Podium</h1>
+              <p className="text-[11px] text-amber-700 dark:text-accent font-semibold">{"{wpmedia}"}</p>
             </div>
           )}
         </div>
@@ -338,7 +337,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           Chevron buttons appear at the edges when content is clipped, so the
           user knows there's more to reach without inspecting the scrollbar. */}
       <div className="flex-1 min-h-0 relative flex">
-        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-0.5">
+        <nav ref={navRef} className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3 space-y-1">
           {NAV_ITEMS.map(({ to, icon: Icon, label }) => {
             return (
               <NavLink
@@ -347,28 +346,17 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
                 end={to === "/"}
                 title={collapsed ? label : undefined}
                 className={({ isActive }) =>
-                  `group relative flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
+                  `flex items-center gap-3 rounded-lg text-sm font-medium transition-colors duration-150 ${
                     collapsed ? "justify-center px-2 py-2.5" : "px-3 py-2.5"
                   } ${
                     isActive
-                      ? "text-accent font-semibold bg-accent/10"
-                      : "text-fg-muted hover:text-fg-base hover:bg-white/[0.04]"
+                      ? "bg-accent/20 dark:bg-accent/10 text-gray-900 dark:text-accent border-l-2 border-accent font-semibold"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-4 dark:hover:bg-surface-3 border-l-2 border-transparent"
                   }`
                 }
               >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <span
-                        className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-0.5 rounded-full bg-accent"
-                        style={{ boxShadow: "0 0 8px 0 var(--accent, #d4a843)" }}
-                        aria-hidden
-                      />
-                    )}
-                    <Icon className="w-4 h-4 flex-shrink-0" />
-                    {!collapsed && <span>{label}</span>}
-                  </>
-                )}
+                <Icon className="w-4 h-4 flex-shrink-0" />
+                {!collapsed && <span>{label}</span>}
               </NavLink>
             );
           })}
@@ -379,7 +367,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
             onClick={() => scrollNavBy(-160)}
             aria-label="Scroll navigation up"
             title="Scroll navigation up"
-            className="absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-lg bg-surface-2 text-fg-muted hover:text-accent transition-colors duration-150 backdrop-blur-sm animate-fade-in"
+            className="absolute top-1.5 right-[7px] z-10 inline-flex items-center justify-center w-6 h-6 rounded-md border border-border bg-surface-2/90 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-50 hover:bg-surface-3 shadow-md backdrop-blur-sm transition-colors animate-fade-in"
           >
             <ChevronUp className="w-3.5 h-3.5" aria-hidden />
           </button>
@@ -390,7 +378,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
             onClick={() => scrollNavBy(160)}
             aria-label="Scroll navigation down"
             title="Scroll navigation down"
-            className="absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-7 h-7 rounded-lg bg-surface-2 text-fg-muted hover:text-accent transition-colors duration-150 backdrop-blur-sm animate-fade-in"
+            className="absolute bottom-1.5 right-[7px] z-10 inline-flex items-center justify-center w-6 h-6 rounded-md border border-border bg-surface-2/90 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-50 hover:bg-surface-3 shadow-md backdrop-blur-sm transition-colors animate-fade-in"
           >
             <ChevronDown className="w-3.5 h-3.5" aria-hidden />
           </button>
@@ -398,14 +386,14 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
       </div>
 
       {/* Collapse toggle */}
-      <div className="px-2 py-2 flex-shrink-0 space-y-1">
+      <div className="px-2 py-2 flex-shrink-0 space-y-2">
         <ThemeToggle collapsed={collapsed} />
         <button
           onClick={onToggle}
-          className={`w-full h-10 rounded-lg text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150 ${
+          className={`w-full h-10 rounded-lg border border-border bg-surface-2 transition-colors ${
             collapsed
-              ? "flex items-center justify-center"
-              : "flex items-center gap-2.5 px-3"
+              ? "flex items-center justify-center text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-3"
+              : "flex items-center gap-2.5 px-3 text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-surface-3"
           }`}
           title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
@@ -423,16 +411,16 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
 
       {/* Footer */}
       <div
-        className={`px-3 pt-3 pb-4 space-y-1.5 flex-shrink-0 border-t border-white/[0.06] ${collapsed ? "px-2" : ""}`}
+        className={`px-3 pt-3 pb-4 border-t border-border space-y-2.5 flex-shrink-0 ${collapsed ? "px-2" : ""}`}
       >
         <button
           type="button"
           onClick={() => setStatusModalOpen(true)}
           aria-label="Connection details"
           title="Connection details"
-          className={`rounded-lg text-left cursor-pointer hover:bg-white/[0.04] transition-colors duration-150 ${
+          className={`rounded-lg border border-border bg-surface-2 hover:bg-surface-3 transition-colors text-left cursor-pointer ${
             collapsed
-              ? "w-9 h-9 mx-auto flex items-center justify-center p-0"
+              ? "w-8 h-8 mx-auto flex items-center justify-center p-0"
               : "block w-full px-2.5 py-2"
           }`}
         >
@@ -441,7 +429,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
           >
             <span
               className={`inline-flex items-center gap-2 ${
-                wsConnected ? "text-emerald-400" : "text-fg-dim"
+                wsConnected ? "text-emerald-700 dark:text-emerald-400" : "text-gray-700 dark:text-gray-500"
               }`}
             >
               {wsConnected ? (
@@ -453,40 +441,44 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
                 <span className="font-medium">{wsConnected ? "Live" : "Disconnected"}</span>
               )}
             </span>
-            {!collapsed && <span className="text-[11px] font-medium text-fg-dim">v{__APP_VERSION__}</span>}
+            {!collapsed && <span className="text-[11px] font-medium text-gray-600">v{__APP_VERSION__}</span>}
           </div>
         </button>
         {!collapsed && (
-          <div className="space-y-1">
+          <div className="space-y-1.5">
             <a
               href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
+              className="group flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-200 hover:bg-surface-3 hover:border-border transition-colors"
               title="GitHub"
             >
-              <Github className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="w-6 h-6 rounded-md bg-surface-3 flex items-center justify-center">
+                <Github className="w-3.5 h-3.5 flex-shrink-0" />
+              </span>
               <span className="font-medium">GitHub</span>
             </a>
             <a
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
+              className="group flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-2 text-xs text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-200 hover:bg-surface-3 hover:border-border transition-colors"
               title={websiteLabel}
             >
-              <Globe className="w-3.5 h-3.5 flex-shrink-0" />
-              <span className="font-medium truncate">{websiteLabel}</span>
+              <span className="w-6 h-6 rounded-md bg-surface-3 flex items-center justify-center">
+                <Globe className="w-3.5 h-3.5 flex-shrink-0" />
+              </span>
+              <span className="font-medium text-gray-600 dark:text-gray-300 truncate">{websiteLabel}</span>
             </a>
           </div>
         )}
         {collapsed && (
-          <div className="flex flex-col items-center gap-1 pt-0.5">
+          <div className="flex flex-col items-center gap-2 pt-0.5">
             <a
               href="https://github.com/wp-media/maestro"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
+              className="w-8 h-8 rounded-md border border-transparent flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-surface-3 hover:border-border transition-colors"
               title="GitHub"
               aria-label="GitHub"
             >
@@ -496,7 +488,7 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
               href="https://wp-media.me"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150"
+              className="w-8 h-8 rounded-md border border-transparent flex items-center justify-center text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-300 hover:bg-surface-3 hover:border-border transition-colors"
               title={websiteLabel}
               aria-label={websiteLabel}
             >
@@ -614,7 +606,7 @@ function ConnectionStatusModal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in"
       role="dialog"
       aria-modal="true"
       aria-labelledby="connection-status-title"
@@ -622,14 +614,14 @@ function ConnectionStatusModal({
         if (e.target === e.currentTarget) close();
       }}
     >
-      <div className="w-full max-w-md bg-surface-1 border border-white/[0.08] rounded-2xl animate-slide-up overflow-hidden flex flex-col max-h-[85vh] shadow-2xl shadow-black/40">
-        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-white/[0.06]">
+      <div className="w-full max-w-md card shadow-2xl animate-slide-up overflow-hidden flex flex-col max-h-[85vh]">
+        <div className="flex items-start justify-between gap-3 px-5 py-4 border-b border-border">
           <div className="flex items-center gap-3 min-w-0">
             <div
-              className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              className={`w-9 h-9 rounded-lg border flex items-center justify-center flex-shrink-0 ${
                 wsConnected
-                  ? "bg-emerald-500/10 text-emerald-400"
-                  : "bg-white/[0.04] text-fg-muted"
+                  ? "bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/30 text-emerald-700 dark:text-emerald-400"
+                  : "bg-surface-3 border-border text-gray-600 dark:text-gray-400"
               }`}
             >
               {wsConnected ? (
@@ -641,13 +633,13 @@ function ConnectionStatusModal({
             <div className="min-w-0">
               <h2
                 id="connection-status-title"
-                className="text-base font-semibold text-fg-base truncate tracking-tight leading-tight"
+                className="text-base font-semibold text-gray-800 dark:text-gray-50 truncate tracking-tight leading-tight"
               >
                 Connection details
               </h2>
               <p
                 className={`text-[11px] font-medium inline-flex items-center gap-1.5 leading-tight ${
-                  wsConnected ? "text-emerald-400" : "text-fg-dim"
+                  wsConnected ? "text-emerald-700 dark:text-emerald-400" : "text-gray-700 dark:text-gray-500"
                 }`}
               >
                 {wsConnected && (
@@ -664,7 +656,7 @@ function ConnectionStatusModal({
             type="button"
             onClick={close}
             aria-label="Close"
-            className="p-2 -m-1 rounded-lg text-fg-muted hover:text-accent hover:bg-white/[0.04] transition-colors duration-150 flex-shrink-0"
+            className="p-1.5 -m-1 rounded-lg text-gray-700 dark:text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-surface-4 transition-colors flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
@@ -708,7 +700,7 @@ function ConnectionStatusModal({
           {/* Top event types */}
           <Section title="Top event types" icon={BarChart3}>
             {topTypes.length === 0 ? (
-              <p className="text-sm text-fg-dim italic">No events yet</p>
+              <p className="text-sm text-gray-600 dark:text-gray-500 italic">No events yet</p>
             ) : (
               <div className="space-y-1.5">
                 {topTypes.map(([type, count]) => (
@@ -721,16 +713,16 @@ function ConnectionStatusModal({
           {/* Recent activity */}
           <Section title="Recent activity" icon={Clock}>
             {recentEvents.length === 0 ? (
-              <p className="text-sm text-fg-dim italic">No events yet</p>
+              <p className="text-sm text-gray-600 dark:text-gray-500 italic">No events yet</p>
             ) : (
               <ul className="space-y-1">
                 {recentEvents.map((evt, i) => (
                   <li
                     key={`${evt.at}-${i}`}
-                    className="flex items-center justify-between gap-3 text-[11px] font-mono px-2.5 py-1.5 rounded-lg bg-white/[0.03] border border-white/[0.05]"
+                    className="flex items-center justify-between gap-3 text-[11px] font-mono px-2 py-1 rounded bg-surface-2/50"
                   >
-                    <span className="text-fg-base truncate">{evt.type}</span>
-                    <span className="text-fg-dim flex-shrink-0">{formatRelative(evt.at)}</span>
+                    <span className="text-gray-700 dark:text-gray-200 truncate">{evt.type}</span>
+                    <span className="text-gray-700 dark:text-gray-500 flex-shrink-0">{formatRelative(evt.at)}</span>
                   </li>
                 ))}
               </ul>
@@ -738,12 +730,12 @@ function ConnectionStatusModal({
           </Section>
         </div>
 
-        <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-white/[0.06]">
-          <span className="text-[10px] text-fg-dim">Stats persist across reloads</span>
+        <div className="flex items-center justify-between gap-2 px-5 py-3 border-t border-border bg-surface-2/40">
+          <span className="text-[10px] text-gray-700 dark:text-gray-500">Stats persist across reloads</span>
           <button
             type="button"
             onClick={onResetStats}
-            className="text-[11px] font-medium text-fg-muted hover:text-accent bg-white/[0.04] hover:bg-white/[0.06] px-3 py-1.5 rounded-lg transition-colors duration-150"
+            className="text-[11px] font-medium text-gray-700 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-surface-3 px-2 py-1 rounded transition-colors"
           >
             Reset
           </button>
@@ -765,11 +757,11 @@ function Section({
 }) {
   return (
     <section>
-      <div className="flex items-center gap-2 pb-2 mb-3">
-        <span className="w-5 h-5 rounded-lg bg-accent/10 flex items-center justify-center flex-shrink-0">
+      <div className="flex items-center gap-2 pb-2 mb-3 border-b border-border/60">
+        <span className="w-5 h-5 rounded-md bg-accent/15 border border-accent/25 flex items-center justify-center flex-shrink-0">
           <Icon className="w-3 h-3 text-accent" aria-hidden />
         </span>
-        <h3 className="text-[13px] font-semibold text-fg-base tracking-tight">{title}</h3>
+        <h3 className="text-[13px] font-semibold text-gray-800 dark:text-gray-100 tracking-tight">{title}</h3>
       </div>
       {children}
     </section>
@@ -778,13 +770,13 @@ function Section({
 
 function KpiTile({ label, value, unit }: { label: string; value: string; unit: string }) {
   return (
-    <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] px-2.5 py-2">
-      <div className="text-[9px] font-semibold uppercase tracking-wider text-fg-dim truncate">
+    <div className="rounded-lg border border-border bg-surface-2 px-2.5 py-2">
+      <div className="text-[9px] font-semibold uppercase tracking-wider text-gray-700 dark:text-gray-500 truncate">
         {label}
       </div>
       <div className="mt-0.5 flex items-baseline gap-1 truncate">
-        <span className="text-base font-semibold text-fg-base font-mono">{value}</span>
-        <span className="text-[10px] font-medium text-fg-dim truncate">{unit}</span>
+        <span className="text-base font-semibold text-gray-800 dark:text-gray-100 font-mono">{value}</span>
+        <span className="text-[10px] font-medium text-gray-700 dark:text-gray-500 truncate">{unit}</span>
       </div>
     </div>
   );
@@ -793,10 +785,10 @@ function KpiTile({ label, value, unit }: { label: string; value: string; unit: s
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-3 text-xs">
-      <span className="text-fg-dim font-medium uppercase tracking-wider text-[10px] pt-0.5">
+      <span className="text-gray-700 dark:text-gray-500 font-medium uppercase tracking-wider text-[10px] pt-0.5">
         {label}
       </span>
-      <span className={`text-fg-base text-right break-all min-w-0 ${mono ? "font-mono" : ""}`}>
+      <span className={`text-gray-700 dark:text-gray-200 text-right break-all min-w-0 ${mono ? "font-mono" : ""}`}>
         {value}
       </span>
     </div>
@@ -819,14 +811,14 @@ function TypeBar({
   return (
     <div className="text-[11px]">
       <div className="flex items-center justify-between gap-2 mb-0.5">
-        <span className="font-mono text-fg-base truncate">{type}</span>
-        <span className="text-fg-dim flex-shrink-0 font-mono">
+        <span className="font-mono text-gray-700 dark:text-gray-200 truncate">{type}</span>
+        <span className="text-gray-700 dark:text-gray-500 flex-shrink-0 font-mono">
           {count} · {sharePct}%
         </span>
       </div>
-      <div className="h-1.5 rounded-full bg-white/[0.05] overflow-hidden">
+      <div className="h-1.5 rounded-full bg-surface-3 overflow-hidden">
         <div
-          className="h-full bg-accent rounded-full transition-[width] duration-300"
+          className="h-full bg-accent/70 rounded-full transition-[width] duration-300"
           style={{ width: `${widthPct}%` }}
         />
       </div>
@@ -857,7 +849,7 @@ function Sparkline({
   const stroke = connected ? "#34d399" : "#6b7280";
 
   return (
-    <div className="rounded-lg bg-white/[0.03] border border-white/[0.05] p-2.5">
+    <div className="rounded-lg border border-border bg-surface-2 p-2.5">
       <svg viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="none" className="w-full h-14" aria-hidden>
         <defs>
           <linearGradient id="spark-fill" x1="0" y1="0" x2="0" y2="1">
@@ -878,7 +870,7 @@ function Sparkline({
           />
         )}
       </svg>
-      <div className="flex items-center justify-between mt-1.5 text-[10px] text-fg-dim font-mono">
+      <div className="flex items-center justify-between mt-1.5 text-[10px] text-gray-700 dark:text-gray-500 font-mono">
         <span>−60s</span>
         <span>{avgLabel}</span>
         <span>{"now"}</span>

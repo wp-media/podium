@@ -10,7 +10,7 @@
  * Events without a `tool_use_id` (Stop, Notification, TurnDuration, etc.)
  * become single-event groups and render identically to a flat row.
  *
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 import type { DashboardEvent } from "./types";

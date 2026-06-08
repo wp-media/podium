@@ -1,6 +1,6 @@
 /**
  * @file Sets up the Express server with API routes and WebSocket, serves the React client in production, and includes periodic maintenance tasks like session cleanup and compaction scanning.
- * @author Son Nguyen <hoangson091104@gmail.com>
+ * @author Gael Robin <robin.gael@gmail.com>
  */
 
 if (!process.env.NODE_ENV) process.env.NODE_ENV = "production";
@@ -51,6 +51,8 @@ const importRouter = require("./routes/import");
 const updatesRouter = require("./routes/updates");
 const ccConfigRouter = require("./routes/cc-config");
 const runRouter = require("./routes/run");
+const exportRouter = require("./routes/export");
+const searchRouter = require("./routes/search");
 
 function createApp() {
   const app = express();
@@ -73,6 +75,8 @@ function createApp() {
   app.use("/api/updates", updatesRouter);
   app.use("/api/cc-config", ccConfigRouter);
   app.use("/api/run", runRouter);
+  app.use("/api/export", exportRouter);
+  app.use("/api/search", searchRouter);
   app.get("/api/openapi.json", (_req, res) => {
     res.json(openApiSpec);
   });
