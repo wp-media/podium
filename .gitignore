@@ -10,3 +10,4 @@ coverage/
 .maestro/
 # Root package has no deps — lockfile is noise
 package-lock.json
+new_logos/
