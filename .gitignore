@@ -11,3 +11,9 @@ coverage/
 # Root package has no deps — lockfile is noise
 package-lock.json
 new_logos/
+
+# Claude Code local settings (contain machine-specific absolute paths)
+.claude/settings.json
+.claude/settings.local.json
+dashboard/.claude/settings.json
+dashboard/.claude/settings.local.json
