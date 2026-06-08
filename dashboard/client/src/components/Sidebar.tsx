@@ -318,11 +318,11 @@ export function Sidebar({ wsConnected, collapsed, onToggle }: SidebarProps) {
       {/* Brand */}
       <div className="px-3 py-4 border-b border-border flex-shrink-0">
         <div className={`flex items-center ${collapsed ? "justify-center" : "gap-3 px-2"}`}>
-          <div className="w-8 h-8 rounded-lg bg-accent/20 flex items-center justify-center flex-shrink-0">
-            <span className="text-base leading-none text-accent" aria-hidden>
-              ◆
-            </span>
-          </div>
+          <img
+            src="/logo-mark.svg"
+            alt="Podium"
+            className="w-8 h-8 rounded-lg flex-shrink-0"
+          />
           {!collapsed && (
             <div className="min-w-0">
               <h1 className="text-sm font-bold text-gray-900 dark:text-white truncate">Podium</h1>
