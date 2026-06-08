@@ -1,7 +1,7 @@
 {
   "name": "podium-dashboard",
   "version": "1.3.0",
-  "description": "Podium \u2014 Maestro agent observer dashboard by Gael Robin",
+  "description": "Podium — Maestro agent observer dashboard by Gael Robin",
   "private": true,
   "type": "commonjs",
   "main": "server/index.js",
