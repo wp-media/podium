@@ -8,6 +8,12 @@ description: "Manage the Podium agent observer — real-time dashboard for Claud
 Podium captures every Claude Code event through native hooks, stores them in
 SQLite, and streams updates to the browser via WebSocket. Zero extra LLM calls.
 
+The dashboard server runs in a **Docker container** — it is fully self-contained
+and writes nothing into your project directories. The SQLite database lives in a
+project-independent location (`~/.claude/podium/data/`), and Claude Code
+transcripts are read from `~/.claude/` read-only. Hooks fire per-project and POST
+events to `127.0.0.1:4820`, which reaches the container's published port.
+
 ## Resolve the Podium plugin root
 
 This skill lives at `{podium_plugin_root}/commands/podium.md`. Resolve the
@@ -26,14 +32,17 @@ Derived paths (hold these for every subcommand):
 | `PLUGIN_ROOT` | resolved above |
 | `INSTALL_SCRIPT` | `{PLUGIN_ROOT}/install.mjs` |
 | `HOOK_SCRIPT` | `{PLUGIN_ROOT}/hook.mjs` |
-| `SERVER_SCRIPT` | `{PLUGIN_ROOT}/server.mjs` |
-| `DASHBOARD_ROOT` | `{PLUGIN_ROOT}/dashboard` |
-| `PORT` | `4820` (or `$DASHBOARD_PORT` env var if set) |
-| `LOG_FILE` | `~/.claude/podium/server.log` (stable — survives plugin updates) |
+| `COMPOSE_FILE` | `{PLUGIN_ROOT}/docker-compose.yml` |
+| `DATA_DIR` | `~/.claude/podium/data` (SQLite — survives plugin updates) |
+| `PORT` | `4820` (or `$PODIUM_PORT` env var if set) |
 
-The server port is `4820` by default. If the user has set `DASHBOARD_PORT` in their
-environment, use that value instead. The log file lives at a stable path that does not
-change between plugin version updates.
+The server port is `4820` by default. If the user has set `PODIUM_PORT` in their
+environment, use that value instead (it maps the host port; the container always
+listens on 4820 internally). The database lives at a stable, project-independent
+path that does not change between plugin version updates.
+
+All Docker commands use `docker compose -f {COMPOSE_FILE}`, so the build context
+resolves to `{PLUGIN_ROOT}` regardless of the current working directory.
 
 ---
 
@@ -66,7 +75,7 @@ Podium hooks registered in .claude/settings.json
 
 ## `/podium start`
 
-Start the dashboard server (hooks must be set up first).
+Start the dashboard container (hooks must be set up first).
 
 **a. Warn if hooks are missing**
 
@@ -77,58 +86,65 @@ node {INSTALL_SCRIPT} --check
 Exit code 1 → hooks not installed. Warn: "Hooks not set up. Run `/podium setup`
 first, then restart Claude Code." — but continue anyway.
 
-**b. Check if already running**
+**b. Verify Docker is available**
 
 ```bash
-curl -s --max-time 2 http://localhost:{PORT}/health
+docker compose version >/dev/null 2>&1 && echo "ok" || echo "missing"
 ```
 
-HTTP 200 → already up, skip to step e.
+If `missing`: "Docker is required to run Podium. Install Docker Desktop, then
+retry `/podium start`." — and stop.
 
-**c. First-time setup (if node_modules missing)**
+**c. Check if already running**
 
 ```bash
-ls {DASHBOARD_ROOT}/node_modules/.bin 2>/dev/null && echo "ok" || echo "missing"
+curl -s --max-time 2 http://localhost:{PORT}/api/health
 ```
 
-If missing, use a lockfile to prevent concurrent installs from corrupting node_modules:
+HTTP 200 → already up, skip to step f.
+
+**d. Ensure the data directory exists**
 
 ```bash
-flock {DASHBOARD_ROOT}/.npm-install.lock -c "cd {DASHBOARD_ROOT} && npm install 2>&1 | tail -5"
+mkdir -p {DATA_DIR}
 ```
 
-If `flock` is unavailable (non-Linux): `cd {DASHBOARD_ROOT} && npm install 2>&1 | tail -5`
+This is the bind-mount target for the SQLite database, so it must exist (and be
+user-owned) before the container starts.
 
-Takes 1–2 minutes on first run. The `dist/` directory is pre-built — no build
-step needed.
-
-**d. Start server in background**
+**e. Build and start the container**
 
 ```bash
-mkdir -p "$(dirname {LOG_FILE})" && node {SERVER_SCRIPT} >> {LOG_FILE} 2>&1 &
+docker compose -f {COMPOSE_FILE} up -d --build
 ```
 
-Wait 2 s, then verify:
+The first build takes 1–2 minutes (installs deps, builds the React client).
+Subsequent starts are fast — Docker layer-caches everything unchanged, and
+`--build` only rebuilds layers whose source changed (so plugin updates are
+picked up automatically).
+
+Wait 3 s, then verify:
 
 ```bash
-curl -s --max-time 2 http://localhost:{PORT}/health
+curl -s --max-time 3 http://localhost:{PORT}/api/health
 ```
 
 If still unreachable:
 
 ```bash
-tail -20 {LOG_FILE}
+docker compose -f {COMPOSE_FILE} logs --tail 30 podium
 ```
 
-Report: "Podium failed to start. See log above." and stop. **Do not check other ports** — an unrelated process on a different port is not Podium.
+Report: "Podium failed to start. See log above." and stop. **Do not check other
+ports** — an unrelated process on a different port is not Podium.
 
-**e. Show current stats**
+**f. Show current stats**
 
 ```bash
 curl -s http://localhost:{PORT}/api/stats
 ```
 
-**f. Print URL**
+**g. Print URL**
 
 ```
 Podium running -> http://localhost:{PORT}
@@ -139,15 +155,15 @@ Podium running -> http://localhost:{PORT}
 ## `/podium stop`
 
 ```bash
-lsof -ti:{PORT} 2>/dev/null || fuser {PORT}/tcp 2>/dev/null
+docker compose -f {COMPOSE_FILE} ps -q podium
 ```
 
 No output → "Podium is not running."
 
-Otherwise:
+Otherwise stop and remove the container (the database persists in `{DATA_DIR}`):
 
 ```bash
-kill $(lsof -ti:{PORT} 2>/dev/null) 2>/dev/null || fuser -k {PORT}/tcp 2>/dev/null || true
+docker compose -f {COMPOSE_FILE} down
 ```
 
 Confirm: "Podium stopped."
@@ -156,14 +172,21 @@ Confirm: "Podium stopped."
 
 ## `/podium restart`
 
-Run `/podium stop`, wait 1 s, then run `/podium start`.
+Rebuild and restart in one step (picks up any plugin updates):
+
+```bash
+docker compose -f {COMPOSE_FILE} up -d --build
+```
+
+Then verify health as in `/podium start` step e, and print the URL.
 
 ---
 
 ## `/podium status`
 
 ```bash
-curl -s --max-time 2 http://localhost:{PORT}/health
+docker compose -f {COMPOSE_FILE} ps podium
+curl -s --max-time 2 http://localhost:{PORT}/api/health
 ```
 
 **If not running:** "Podium is not running. Run `/podium start` to launch it."
@@ -178,7 +201,7 @@ Display:
 
 ```
 Podium status
-  Server  http://localhost:{PORT}  uptime Xm Xs
+  Server  http://localhost:{PORT}  (container: up)
   Hooks   installed / not installed (.claude/settings.json)
 
   Stats
@@ -191,10 +214,10 @@ Podium status
 ## `/podium logs`
 
 ```bash
-tail -n 50 {LOG_FILE}
+docker compose -f {COMPOSE_FILE} logs --tail 50 podium
 ```
 
-If the file doesn't exist: "No log file found. Has Podium been started yet?"
+If the container has never run: "No logs found. Has Podium been started yet?"
 
 ---
 
@@ -206,7 +229,8 @@ node {INSTALL_SCRIPT} --uninstall
 
 Confirm: "Podium hooks removed. Restart Claude Code to apply."
 
-Does **not** stop a running server — run `/podium stop` first if needed.
+Does **not** stop a running container — run `/podium stop` first if needed. The
+SQLite database in `{DATA_DIR}` is left untouched.
 
 ---
 
@@ -217,16 +241,16 @@ Do **not** start the server.
 
 ```
 Podium — real-time agent observer for Claude Code
-Zero token cost · hooks-driven · pre-built SPA on port 4820
+Zero token cost · hooks-driven · runs in Docker on port 4820
 
 Commands
 ────────────────────────────────────────────────────
   /podium setup      Register Claude Code hooks (run once per project)
-  /podium start      Start the dashboard server
-  /podium stop       Stop the server
-  /podium restart    Stop, then start
+  /podium start      Build & start the dashboard container
+  /podium stop       Stop and remove the container (data is kept)
+  /podium restart    Rebuild and restart
   /podium status     Show health, hook state, and live stats
-  /podium logs       Tail the server log (last 50 lines)
+  /podium logs       Tail the container log (last 50 lines)
   /podium uninstall  Remove hooks from .claude/settings.json
 
 Dashboard → http://localhost:4820
@@ -239,11 +263,11 @@ Dashboard → http://localhost:4820
 | Command | What it does |
 |---|---|
 | `/podium setup` | Register Claude Code hooks (once per project) |
-| `/podium start` | Start the dashboard server |
-| `/podium stop` | Stop the server |
-| `/podium restart` | Stop then start |
+| `/podium start` | Build & start the dashboard container |
+| `/podium stop` | Stop and remove the container (data is kept) |
+| `/podium restart` | Rebuild and restart |
 | `/podium status` | Health + hooks + stats |
-| `/podium logs` | Tail server log |
+| `/podium logs` | Tail container log |
 | `/podium uninstall` | Remove hooks from settings.json |
 
 ---
@@ -251,11 +275,16 @@ Dashboard → http://localhost:4820
 ## Notes
 
 - Hooks fire **per-project**: the hook script captures every Claude Code event
-  and POSTs it to the dashboard server (port 4820 by default).
+  and POSTs it to the dashboard server (port 4820 by default). Nothing is written
+  into your project directory — the container's SQLite database is the single
+  source of truth.
 - Token cost: **zero**. Hooks execute outside the LLM turn.
 - Podium is read-only — it never modifies code or project files.
-- The dashboard is served as a pre-built SPA (`dist/` is committed).
-- Requires Node 18+. Run `npm install` inside `{DASHBOARD_ROOT}` before first use.
-- **Linux:** `better-sqlite3` requires native compilation. If `npm install` fails:
-  `sudo apt-get install -y python3 make g++` then retry.
-- **Linux:** `lsof` may not be installed. `/podium stop` falls back to `fuser -k {PORT}/tcp`.
+- **Data location:** the SQLite database lives at `~/.claude/podium/data/`, a
+  project-independent path that survives plugin updates and container rebuilds.
+  Claude Code transcripts are mounted read-only from `~/.claude/`.
+- **Docker required:** the server runs in a container (`docker compose`). Install
+  Docker Desktop if `/podium start` reports it is missing.
+- **Legacy host mode:** running `node {PLUGIN_ROOT}/server.mjs` directly still
+  works for users without Docker; set `DASHBOARD_DATA_DIR=~/.claude/podium/data`
+  to share the same database as the container.

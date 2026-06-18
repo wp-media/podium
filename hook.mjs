@@ -3,10 +3,11 @@
 // Zero-token Claude Code hook for Podium.
 //
 // Registered in .claude/settings.json for ALL hook events.
-// Captures every tool call + session lifecycle, writing one JSONL line to:
-//   {TEMP_ROOT}/podium/{session_id}/events.jsonl
+// Captures every tool call + session lifecycle and POSTs it to the dashboard
+// server (SQLite-backed). Self-contained: nothing is written into the user's
+// project directory — the server is the single source of truth.
 //
-// Events written:
+// Events POSTed:
 //   session_start / session_end        — session lifecycle
 //   turn_start                         — new user prompt (UserPromptSubmit)
 //   tool_start / tool_end              — every tool use (Bash, Read, Write, Agent…)
@@ -14,7 +15,7 @@
 //
 // Hard exit deadline: 1 500 ms (well inside Claude Code's 2 s kill timeout).
 
-import { appendFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { homedir } from 'node:os'
 import http from 'node:http'
@@ -187,22 +188,7 @@ function run(input) {
 
   if (!hook_event_name || !session_id) return null
 
-  // ── Resolve TEMP_ROOT ───────────────────────────────────────────────────────
   const projectRoot = cwd || process.cwd()
-  let tempRoot = join(projectRoot, '.podium')
-  try {
-    const cfg = JSON.parse(
-      readFileSync(join(projectRoot, '.claude', 'podium.json'), 'utf8'),
-    )
-    if (typeof cfg?.tempRoot === 'string' && cfg.tempRoot.length > 0) {
-      tempRoot = join(projectRoot, cfg.tempRoot)
-    }
-  } catch { /* no podium.json — use .podium/ default */ }
-
-  // ── Ensure session directory ────────────────────────────────────────────────
-  const sessionDir = join(tempRoot, session_id)
-  try { mkdirSync(sessionDir, { recursive: true }) } catch { return null }
-  const eventsFile = join(sessionDir, 'events.jsonl')
 
   // ── Build event ─────────────────────────────────────────────────────────────
   const ts = Date.now()
@@ -220,22 +206,6 @@ function run(input) {
         model: p.model ?? null,
         transcript_path: transcriptPath,
       }
-      // Also persist a session-meta.json so the server can locate the transcript
-      // without re-deriving it. Idempotent overwrite.
-      try {
-        const meta = {
-          session_id,
-          transcript_path: transcriptPath,
-          cwd: projectRoot,
-          model: asString(p.model),
-          started_at: ts,
-        }
-        writeFileSync(
-          join(sessionDir, 'session-meta.json'),
-          JSON.stringify(meta, null, 2),
-          { flag: 'w' },
-        )
-      } catch { /* silent — never crash Claude Code */ }
       break
     }
 
@@ -326,13 +296,7 @@ function run(input) {
       return null // ignore everything else
   }
 
-  // ── Append to JSONL ─────────────────────────────────────────────────────────
-  if (event) {
-    try {
-      appendFileSync(eventsFile, JSON.stringify(event) + '\n')
-    } catch { /* disk full or permissions — silent */ }
-  }
-
-  // Return for async POST in caller — postToDashboard is called after run() returns
+  // Return for async POST in caller — postToDashboard is called after run() returns.
+  // The dashboard server persists to SQLite; nothing is written to disk here.
   return event ? { hookType: hook_event_name, data: p } : null
 }

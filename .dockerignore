@@ -1,0 +1,18 @@
+.git
+.claude
+node_modules
+dashboard/node_modules
+dashboard/client/node_modules
+dashboard/client/dist
+dashboard/mcp/node_modules
+dashboard/desktop
+# SQLite database + raw event dumps — never belong in the image (the DB is
+# bind-mounted from ~/.claude/podium/data at runtime).
+dashboard/data
+.podium
+.maestro
+dashboard/.podium
+dashboard/.maestro
+*.log
+.env
+.env.*

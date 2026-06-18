@@ -1,23 +1,36 @@
-version: '3.8'
-
 services:
   podium:
     build:
       context: .
       dockerfile: Dockerfile
+    container_name: podium
     ports:
-      - "${PODIUM_PORT:-7337}:7337"
+      # Bind to IPv4 loopback only: Podium is a local-only tool (never expose on
+      # the LAN), and this avoids Docker Desktop's IPv6 (::1) port-forward hang
+      # that makes `localhost` requests stall on macOS.
+      - "127.0.0.1:${PODIUM_PORT:-4820}:4820"
     volumes:
-      # Mount the host TEMP_ROOT (read-only) so Podium can read event files.
-      # Override MAESTRO_TEMP_ROOT in a .env file or shell env if needed.
-      - ${MAESTRO_TEMP_ROOT:-.maestro}:/data/maestro:ro
+      # Persist the SQLite database in a project-independent location, mirroring
+      # where ~/.claude/podium/server.log already lives. Survives rebuilds and
+      # is never written into any project directory.
+      - ${HOME}/.claude/podium/data:/app/data
+      # Read Claude Code transcripts (token-usage + compaction stats) read-only.
+      # The server resolves CLAUDE_HOME/projects for per-session token data.
+      - ${HOME}/.claude:/claude-home:ro
     environment:
-      - TEMP_ROOT=/data/maestro
-      - PORT=7337
+      - DASHBOARD_PORT=4820
+      - CLAUDE_HOME=/claude-home
       - NODE_ENV=production
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:7337/health"]
+      # `node` is always present; the slim image has no wget/curl.
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:4820/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))",
+        ]
       interval: 30s
       timeout: 5s
       retries: 3
